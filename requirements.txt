@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+anthropic==0.40.0
+supabase==2.11.0
+python-dotenv==1.0.1
+httpx==0.28.1
+tiktoken==0.8.0
+langdetect==1.0.9
+unicodedata2==15.1.0
