@@ -25,16 +25,44 @@ def get_supabase():
     )
 
 
+_HEB_FINALS = {"ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ"}
+
+
+def consonantal(lemma: str) -> str:
+    """Esqueleto consonantal: só letras-base hebraicas, sem nikud/cantilação,
+    com formas finais dobradas (ך→כ). Forma comum para casar vocalizações
+    divergentes entre o BDB e o lema produzido pelo alinhamento."""
+    out = []
+    for ch in lemma or "":
+        if 0x05D0 <= ord(ch) <= 0x05EA:  # álef..tav (inclui finais)
+            out.append(_HEB_FINALS.get(ch, ch))
+    return "".join(out)
+
+
 def lookup_lexicon(lemma: str, language: str) -> list[dict]:
     """
-    Busca entrada de léxico por lemma exato.
-    Retorna lista de entradas (pode ter BDB + HALOT para mesmo lemma).
+    Busca entrada de léxico por lemma.
+
+    1. match exato pela forma vocalizada (preserva os lemas curados)
+    2. fallback pelo esqueleto consonantal, ordenado por frequência de
+       atestação (sentido dominante primeiro) — tolera vocalização divergente.
     """
     try:
         sb = get_supabase()
         result = sb.table("hermeneia_lexicon_entries").select("*").eq(
             "language_id", language
         ).eq("lemma", lemma).execute()
+        if result.data:
+            return result.data
+
+        cons = consonantal(lemma)
+        if not cons:
+            return []
+        result = sb.table("hermeneia_lexicon_entries").select("*").eq(
+            "language_id", language
+        ).eq("lemma_consonantal", cons).order(
+            "attestation_count", desc=True, nullsfirst=False
+        ).execute()
         return result.data or []
     except Exception:
         return []

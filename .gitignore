@@ -13,5 +13,8 @@ venv/
 frontend/node_modules/
 frontend/dist/
 
+# Lexicon source data (baixado pelo ingest_bdb.py)
+data/lexicons/*.xml
+
 # OS
 .DS_Store
