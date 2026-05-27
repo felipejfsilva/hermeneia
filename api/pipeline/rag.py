@@ -56,10 +56,22 @@ def greek_bare(lemma: str) -> str:
     return "".join(out)
 
 
+def latin_bare(lemma: str) -> str:
+    """Forma 'nua' do latim: minúsculas, sem mácrons/breves, com folding
+    clássico j→i e v→u (variação ortográfica entre L&S e o lema)."""
+    import unicodedata
+    s = unicodedata.normalize("NFD", (lemma or "").lower())
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.replace("j", "i").replace("v", "u")
+    return "".join(c for c in s if "a" <= c <= "z")
+
+
 def normalized_lemma(lemma: str, language: str) -> str:
     """Chave de match tolerante à vocalização, por família de língua."""
     if language in _GREEK_LANGS:
         return greek_bare(lemma)
+    if language == "latin":
+        return latin_bare(lemma)
     return consonantal(lemma)
 
 
