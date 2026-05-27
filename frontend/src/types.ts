@@ -56,6 +56,7 @@ export interface AnalysisSummary {
   consistency_issues: ConsistencyIssue[]
   high_confidence_pct: number
   low_confidence_pct: number
+  narrative?: string
 }
 
 export interface RefineResponse {

@@ -316,6 +316,27 @@ export default function App() {
               {/* Summary bar */}
               <SummaryBar summary={result.summary} processingMs={result.processing_ms} />
 
+              {/* Parecer em prosa */}
+              {result.summary.narrative && (
+                <div style={{
+                  marginBottom: '16px', padding: '14px 16px', borderRadius: '10px',
+                  background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)',
+                }}>
+                  <div style={{
+                    fontSize: '0.68rem', fontWeight: 700, color: '#818cf8',
+                    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px',
+                  }}>
+                    Audit Verdict
+                  </div>
+                  {result.summary.narrative.split('\n').filter(p => p.trim()).map((para, i) => (
+                    <p key={i} style={{
+                      margin: i === 0 ? 0 : '8px 0 0', fontSize: '0.83rem',
+                      lineHeight: 1.6, color: '#cbd5e1',
+                    }}>{para}</p>
+                  ))}
+                </div>
+              )}
+
               {/* Consistency issues */}
               {result.summary.consistency_issues.length > 0 && (
                 <div style={{ marginBottom: '16px' }}>

@@ -278,6 +278,62 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
     )
 
 
+def generate_narrative(
+    tokens: list[TokenAnalysis],
+    summary: "AnalysisSummary",
+    language: str,
+    original_text: str,
+    translation: str,
+    translation_source: str | None,
+) -> str:
+    """
+    Parecer em prosa do audit. SINTETIZA os achados já computados — não
+    introduz novas afirmações filológicas (fiel ao princípio de não-opinião).
+    """
+    lang_display = LANG_NAMES.get(language, language)
+    lines = []
+    for t in tokens:
+        ev = t.lexicon_evidence[0] if t.lexicon_evidence else None
+        parts = [f'{t.original} -> "{t.existing}" (conf {t.confidence:.2f})']
+        if t.flags:
+            parts.append("flags: " + ", ".join(f.value for f in t.flags))
+        if ev and ev.gloss_primary:
+            parts.append(f'lexicon "{ev.gloss_primary}" [{ev.source_citation or ev.lexicon}]')
+        if t.sources_total:
+            agree = ", ".join(t.sources_agreeing) if t.sources_agreeing else "none"
+            parts.append(f"consensus {len(t.sources_agreeing)}/{t.sources_total} ({agree})")
+        if ev and ev.controversy_notes:
+            parts.append(f"controversy: {ev.controversy_notes}")
+        lines.append(" | ".join(parts))
+    digest = "\n".join(lines)
+    src = f" ({translation_source})" if translation_source else ""
+
+    prompt = f"""You are writing the summary verdict of a philological translation audit.
+
+Source text ({lang_display}): {original_text}
+Translation under audit{src}: {translation}
+
+Overall metrics: {summary.total_tokens} tokens, {summary.tokens_flagged} flagged, \
+average confidence {summary.avg_confidence}, flag counts {summary.flags_breakdown}.
+
+Per-token findings — this is the ONLY evidence you may use:
+{digest}
+
+Write a concise scholarly audit summary (2-3 short paragraphs) addressed to the translator:
+- Base EVERY statement strictly on the findings above. Do NOT introduce any lexical, \
+grammatical, historical, or theological claim not present in the findings, and invent no citations.
+- First give the overall reliability, then single out the specific flagged renderings \
+(name the token, its rendering, the flag, and the consensus numbers or controversy note that justify it).
+- Sober, precise prose. No markdown headers, no bullet lists."""
+
+    resp = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=700,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return resp.content[0].text.strip()
+
+
 def run_pipeline(
     original_text: str,
     translation: str,
@@ -357,6 +413,15 @@ def run_pipeline(
         high_confidence_pct=round(high_pct, 1),
         low_confidence_pct=round(low_pct, 1),
     )
+
+    # Parecer em prosa (síntese dos achados; não bloqueia se falhar)
+    try:
+        summary.narrative = generate_narrative(
+            token_analyses_out, summary, language,
+            original_text, translation, translation_source,
+        )
+    except Exception:
+        summary.narrative = None
 
     processing_ms = int((time.time() - t0) * 1000)
 

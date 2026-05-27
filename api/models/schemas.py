@@ -86,6 +86,7 @@ class AnalysisSummary(BaseModel):
     bpe_validation: Optional[BPEValidation] = None
     high_confidence_pct: float       # % tokens com confidence > 0.75
     low_confidence_pct: float        # % tokens com confidence < 0.50
+    narrative: Optional[str] = None  # parecer em prosa, sintetizado dos achados
 
 
 # ── Request / Response ─────────────────────────────────────────────────────────
