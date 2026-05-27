@@ -24,3 +24,23 @@ export async function getLanguages() {
   const res = await fetch(`${BASE}/languages`)
   return res.json()
 }
+
+export interface SourceWitness {
+  witness: string
+  witness_name: string
+  language_id: string
+  text: string
+  ref: string
+}
+
+export async function fetchSourceText(ref: string, language?: string): Promise<{
+  ref: string
+  resolved: { book: string; chapter: number; verse: number } | null
+  witnesses: SourceWitness[]
+}> {
+  const params = new URLSearchParams({ ref })
+  if (language) params.set('language', language)
+  const res = await fetch(`${BASE}/source-text?${params.toString()}`)
+  if (!res.ok) throw new Error('Falha ao buscar texto-fonte')
+  return res.json()
+}

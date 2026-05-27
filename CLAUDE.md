@@ -67,6 +67,22 @@ curados têm o esqueleto "reservado" — BDB não os encobre.
    validado: λόγος→"Word" unânime, ἀγάπη "charity" e σάρξ "sinful nature"
    disparam CONSENSUS_LOW; hebraico re-keado segue casando.
 
+## Textos-fonte por referência (`hermeneia_source_texts`)
+- Usuário digita uma referência ("John 1:1") e escolhe o testemunho-base.
+- 39.097 versículos: **WLC** (hebraico, scrollmapper), **TR** (grego, scrollmapper)
+  e **SBLGNT** (grego crítico, morphgnt). Bizantino fica pra depois (caminho
+  instável). Ingestão: `scripts/sources/ingest_source_texts.py` (idempotente).
+- Nomes de livro canônicos = padrão scrollmapper ("I Corinthians",
+  "Revelation of John"). `api/references.py:resolve_reference` faz o parse
+  (aliases jn/Mt/1 Cor, prefixo, 1↔I). Endpoint `GET /source-text?ref=&language=`.
+- Frontend: bloco "Fetch original by reference" → cards de testemunho clicáveis
+  que preenchem o original.
+
+## Parecer em prosa (narrative)
+- `refine.py:generate_narrative` (1 chamada Sonnet) sintetiza os achados já
+  computados num texto-veredito; `AnalysisSummary.narrative`; bloco "Audit
+  Verdict" no frontend. NÃO introduz afirmações fora dos dados.
+
 ## Pendente
 - **Deploy real** (Railway API + Vercel frontend) — depende das contas do
   usuário; passo a passo em `DEPLOY.md`. Não há PR aberto (não foi pedido).

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { refineTranslation, getLanguages } from './api'
+import { refineTranslation, getLanguages, fetchSourceText, type SourceWitness } from './api'
 import { TokenChip } from './components/TokenChip'
 import { TokenPanel } from './components/TokenPanel'
 import { SummaryBar } from './components/SummaryBar'
@@ -46,6 +46,10 @@ export default function App() {
   const [result, setResult] = useState<RefineResponse | null>(null)
   const [selected, setSelected] = useState<TokenAnalysis | null>(null)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
+  const [refQuery, setRefQuery] = useState('')
+  const [witnesses, setWitnesses] = useState<SourceWitness[]>([])
+  const [refLoading, setRefLoading] = useState(false)
+  const [refError, setRefError] = useState<string | null>(null)
 
   useEffect(() => {
     getLanguages().then(setLanguages).catch(() => {})
@@ -86,6 +90,32 @@ export default function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleFetchRef() {
+    if (!refQuery.trim()) return
+    setRefLoading(true)
+    setRefError(null)
+    setWitnesses([])
+    try {
+      const data = await fetchSourceText(refQuery, language)
+      if (!data.resolved || data.witnesses.length === 0) {
+        setRefError(`Referência não encontrada para ${language}: "${refQuery}"`)
+      } else {
+        setWitnesses(data.witnesses)
+        setTitle(data.ref)
+      }
+    } catch {
+      setRefError('Erro ao buscar referência')
+    } finally {
+      setRefLoading(false)
+    }
+  }
+
+  function pickWitness(w: SourceWitness) {
+    setOriginal(w.text)
+    setSource(w.witness)
+    setResult(null)
   }
 
   function selectToken(t: TokenAnalysis, i: number) {
@@ -151,7 +181,7 @@ export default function App() {
             </label>
             <select
               value={language}
-              onChange={e => { setLanguage(e.target.value); setResult(null); setSelected(null); setSelectedIdx(null) }}
+              onChange={e => { setLanguage(e.target.value); setResult(null); setSelected(null); setSelectedIdx(null); setWitnesses([]); setRefError(null) }}
               style={{
                 width: '100%', padding: '8px 10px', borderRadius: '8px',
                 background: '#0f172a', border: '1px solid #1e293b',
@@ -186,6 +216,71 @@ export default function App() {
                 color: '#f1f5f9', fontSize: '0.85rem', boxSizing: 'border-box',
               }}
             />
+          </div>
+
+          {/* Fetch original by reference */}
+          <div>
+            <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Fetch original by reference
+            </label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input
+                value={refQuery}
+                onChange={e => setRefQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleFetchRef() }}
+                placeholder="e.g. John 1:1, Gen 1:1"
+                style={{
+                  flex: 1, padding: '8px 10px', borderRadius: '8px',
+                  background: '#0f172a', border: '1px solid #1e293b',
+                  color: '#f1f5f9', fontSize: '0.82rem', boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={handleFetchRef}
+                disabled={refLoading || !refQuery.trim()}
+                style={{
+                  padding: '8px 12px', borderRadius: '8px',
+                  background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                  color: '#a5b4fc', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {refLoading ? '…' : 'Fetch'}
+              </button>
+            </div>
+            {refError && (
+              <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#fca5a5' }}>{refError}</div>
+            )}
+            {witnesses.length > 0 && (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ fontSize: '0.68rem', color: '#475569' }}>
+                  Choose a textual witness:
+                </div>
+                {witnesses.map(w => (
+                  <button
+                    key={w.witness}
+                    onClick={() => pickWitness(w)}
+                    style={{
+                      textAlign: 'left', padding: '8px 10px', borderRadius: '8px',
+                      background: original === w.text ? 'rgba(99,102,241,0.14)' : '#0f172a',
+                      border: `1px solid ${original === w.text ? 'rgba(99,102,241,0.45)' : '#1e293b'}`,
+                      color: '#cbd5e1', cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#818cf8', marginBottom: '3px' }}>
+                      {w.witness} · {w.witness_name}
+                    </div>
+                    <div style={{
+                      fontSize: rtl ? '1rem' : '0.78rem', color: '#94a3b8',
+                      direction: rtl ? 'rtl' : 'ltr', lineHeight: 1.5,
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    }}>
+                      {w.text}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Original text */}

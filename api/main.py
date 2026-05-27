@@ -14,6 +14,7 @@ load_dotenv(override=True)
 
 from api.models.schemas import RefineRequest, RefineResponse, Language
 from api.pipeline.refine import run_pipeline
+from api.references import resolve_reference
 
 # ── Supabase client ───────────────────────────────────────────────────────────
 from supabase import create_client
@@ -75,6 +76,37 @@ def list_languages():
             {"id": "latin",           "name": "Classical Latin",  "lexicons": ["L&S"],          "script": "Latin"},
             {"id": "coptic",          "name": "Coptic",           "lexicons": ["CED"],          "script": "Coptic"},
         ]
+    }
+
+
+# ── Source text by reference ──────────────────────────────────────────────────
+
+@app.get("/source-text")
+def source_text(ref: str, language: str | None = None):
+    """
+    Busca o texto-fonte de uma referência (ex.: 'John 1:1') nos testemunhos
+    disponíveis. O usuário escolhe qual usar como original.
+    - hebraico → WLC
+    - grego    → SBLGNT (crítico) + TR (Textus Receptus)
+    """
+    parsed = resolve_reference(ref)
+    if not parsed:
+        return {"ref": ref, "resolved": None, "witnesses": []}
+    book, ch, vs = parsed
+    try:
+        sb = get_supabase()
+        q = sb.table("hermeneia_source_texts").select(
+            "witness, witness_name, language_id, text, ref"
+        ).eq("book", book).eq("chapter", ch).eq("verse", vs)
+        if language:
+            q = q.eq("language_id", language)
+        rows = q.order("witness").execute().data or []
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    return {
+        "ref": f"{book} {ch}:{vs}",
+        "resolved": {"book": book, "chapter": ch, "verse": vs},
+        "witnesses": rows,
     }
 
 
