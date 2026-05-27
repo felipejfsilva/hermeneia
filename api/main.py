@@ -39,9 +39,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Em produção, defina ALLOWED_ORIGINS com o domínio do frontend (ex.: Vercel),
+# separado por vírgula. Em dev, o default "*" libera tudo.
+_origins_env = os.environ.get("ALLOWED_ORIGINS", "*").strip()
+allow_origins = ["*"] if _origins_env == "*" else [
+    o.strip() for o in _origins_env.split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
