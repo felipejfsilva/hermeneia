@@ -31,6 +31,24 @@ REFERENCE_TRANSLATIONS = {
 }
 
 
+_FUNCTION_GLOSSES = {
+    "the", "a", "an", "and", "but", "or", "of", "in", "to", "with", "for",
+    "on", "at", "from", "by", "as", "this", "that", "these", "those", "who",
+    "which", "not", "no", "now", "then", "so", "if", "the following",
+}
+
+
+def _is_function_word(lexicon_data: dict, translation_span: str) -> bool:
+    """Token gramatical (artigo, partícula, conjunção, preposição, marcador de
+    objeto)? Para esses, 'semantic_narrowing' não se aplica — é ruído."""
+    gp = (lexicon_data.get("gloss_primary") or "").strip().lower()
+    sp = (translation_span or "").strip().lower().strip(",.;:·")
+    if "object marker" in gp or "the following" in gp:
+        return True
+    gp_clean = gp.strip(",.;:·")
+    return gp_clean in _FUNCTION_GLOSSES or sp in _FUNCTION_GLOSSES
+
+
 def compute_confidence(
     language: str,
     lexicon_data: dict,
@@ -59,8 +77,10 @@ def compute_confidence(
             score -= 0.20
         issue = eval_data.get("issue_type")
         if issue == "semantic_narrowing":
-            score -= 0.10
-            flags.append(FlagType.SEMANTIC_NARROWING)
+            # Palavras gramaticais não "estreitam" sentido — evita ruído de flag.
+            if not _is_function_word(lexicon_data, translation_span):
+                score -= 0.10
+                flags.append(FlagType.SEMANTIC_NARROWING)
         elif issue == "idiomatic_missed":
             score -= 0.15
             flags.append(FlagType.IDIOMATIC)
