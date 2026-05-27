@@ -144,13 +144,31 @@ Provide a complete philological analysis. Respond ONLY with JSON:
   "alternative_glosses": ["<alt1>", "<alt2>"]
 }}"""
 
-    response = client.messages.create(
-        model="claude-haiku-4-5",   # Haiku: mais rápido, suficiente para análise estruturada
-        max_tokens=800,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    data = _parse_json(response.content[0].text)
+    # Até 2 tentativas: Haiku ocasionalmente emite JSON malformado
+    # (vírgula faltante, aspas não escapadas). Na 2ª, reforça a instrução.
+    data = None
+    last_err: Exception | None = None
+    for attempt in range(2):
+        msgs = [{"role": "user", "content": prompt}]
+        if attempt > 0:
+            msgs.append({
+                "role": "user",
+                "content": "Your previous response was not valid JSON. "
+                           "Respond again with ONLY a single minified JSON object — "
+                           "no prose, no code fences, all string quotes escaped.",
+            })
+        response = client.messages.create(
+            model="claude-haiku-4-5",   # Haiku: mais rápido, suficiente para análise estruturada
+            max_tokens=1200,
+            messages=msgs,
+        )
+        try:
+            data = _parse_json(response.content[0].text)
+            break
+        except (json.JSONDecodeError, ValueError) as e:
+            last_err = e
+    if data is None:
+        raise ValueError(f"JSON parse failed after retry: {last_err}")
 
     # Se veio de indexed_entry, mescla com dados do banco
     if indexed_entry:
@@ -186,9 +204,32 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
     consensus = get_reference_consensus(original, trans_span, language)
 
     # Chamada LLM única por token
-    lex_data = analyze_token_single_call(
-        original, lemma, translit, trans_span, language, indexed_entry
-    )
+    try:
+        lex_data = analyze_token_single_call(
+            original, lemma, translit, trans_span, language, indexed_entry
+        )
+    except Exception:
+        # LLM/JSON falhou. Se temos entrada indexada, degradamos para os
+        # dados do banco (sem reasoning do LLM) em vez de perder tudo.
+        if not indexed_entry:
+            raise
+        lex_data = {
+            "gloss_primary":     indexed_entry.get("gloss_primary", ""),
+            "glosses":           indexed_entry.get("glosses", []),
+            "semantic_range":    indexed_entry.get("semantic_range", ""),
+            "attestation_count": indexed_entry.get("attestation_count"),
+            "is_hapax":          indexed_entry.get("is_hapax", False),
+            "parallel_passages": indexed_entry.get("parallel_passages", []),
+            "controversy_notes": indexed_entry.get("controversy_notes"),
+            "source_citation":   indexed_entry.get("source_citation", ""),
+            "source":            "indexed_lexicon",
+            "lexicon":           indexed_entry.get("lexicon", "BDB"),
+            "refined":           trans_span,
+            "alternative_glosses": [],
+            "reasoning": f"Lexicon evidence from {indexed_entry.get('lexicon', 'BDB')} "
+                         "(LLM reasoning unavailable for this token).",
+            "translation_evaluation": {},
+        }
 
     # Scoring objetivo (sem LLM)
     confidence, flags, alts_from_score = compute_confidence(language, lex_data, trans_span, consensus)
