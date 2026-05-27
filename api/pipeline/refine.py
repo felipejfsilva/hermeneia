@@ -200,8 +200,8 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
     indexed = lookup_lexicon(lemma, language)
     indexed_entry = indexed[0] if indexed else None
 
-    # Consensus cacheado
-    consensus = get_reference_consensus(original, trans_span, language)
+    # Consensus cacheado (chaveado por lemma, não pelo token de superfície)
+    consensus = get_reference_consensus(lemma, trans_span, language)
 
     # Chamada LLM única por token
     try:
@@ -272,6 +272,7 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
         alternatives=alternatives,
         lexicon_evidence=[lex_evidence],
         reasoning=lex_data.get("reasoning", ""),
+        consensus_score=consensus.get("weighted_score") if consensus else None,
         sources_agreeing=consensus.get("sources_agreeing", []) if consensus else [],
         sources_total=consensus.get("sources_total", 0) if consensus else 0,
     )

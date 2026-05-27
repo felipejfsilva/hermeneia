@@ -40,27 +40,99 @@ def lookup_lexicon(lemma: str, language: str) -> list[dict]:
         return []
 
 
+_TERM_STOPWORDS = {
+    "the", "a", "an", "of", "in", "on", "at", "by", "to", "and",
+    "for", "with", "upon", "from", "as", "is", "was",
+}
+
+
+def _stem(w: str) -> str:
+    """Stem conservador para inflexões regulares do inglês.
+
+    Reduz plural e flexão verbal regular ao mesmo radical para que
+    "created"/"create", "heavens"/"heaven", "waters"/"water" colidam.
+    Verbos irregulares (make/made, see/saw) não são tratados.
+    """
+    if len(w) > 5 and w.endswith("ing"):
+        w = w[:-3]
+    elif len(w) > 4 and w.endswith("ed"):
+        w = w[:-2]
+    elif len(w) > 4 and w.endswith("es"):
+        w = w[:-2]
+    elif len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
+        w = w[:-1]
+    if len(w) > 4 and w.endswith("e"):
+        w = w[:-1]
+    return w
+
+
+def normalize_term(term: str) -> str:
+    """Forma canônica de um termo de tradução para comparação.
+
+    Minúsculas, sem artigos/preposições, palavras de conteúdo reduzidas a
+    radical — para que "In the beginning"≈"beginning" e "created"≈"create".
+    """
+    import re
+
+    words = re.findall(r"[a-z]+", (term or "").lower())
+    content = [_stem(w) for w in words if w not in _TERM_STOPWORDS]
+    return " ".join(content)
+
+
+def _terms_match(user_term: str, ref_term: str) -> bool:
+    """Match lenient: igualdade normalizada ou contenção de conjunto de palavras."""
+    u, r = normalize_term(user_term), normalize_term(ref_term)
+    if not u or not r:
+        return False
+    if u == r:
+        return True
+    us, rs = set(u.split()), set(r.split())
+    return us <= rs or rs <= us
+
+
 def get_reference_consensus(
-    original_token: str,
+    lemma: str,
     translation_term: str,
     language: str
 ) -> dict:
     """
-    Busca consensus score cacheado.
-    Se não existe, retorna None (será computado pelo scoring.py).
+    Busca o consenso das traduções de referência para um lema.
+
+    Chaveado por LEMMA (não pelo token de superfície), porque é assim que o
+    consenso é indexado e como o léxico é consultado. Retorna a linha cujo
+    termo de referência casa com a tradução do usuário (match lenient).
+
+    - lema sem dados de consenso  → None (cai no scoring só-léxico)
+    - lema com dados, termo casa  → linha correspondente (suporte real)
+    - lema com dados, termo diverge → consenso sintético com weighted_score=0
+      (o usuário usou uma leitura que nenhuma referência usa → CONSENSUS_LOW)
     """
     try:
         sb = get_supabase()
         result = sb.table("hermeneia_token_consensus").select("*").eq(
             "language_id", language
-        ).eq("original_token", original_token).eq(
-            "translation_term", translation_term
-        ).execute()
-        if result.data:
-            return result.data[0]
+        ).eq("original_token", lemma).execute()
     except Exception:
-        pass
-    return None
+        return None
+
+    rows = result.data or []
+    if not rows:
+        return None
+
+    for row in rows:
+        if _terms_match(translation_term, row.get("translation_term", "")):
+            return row
+
+    # Lema conhecido, mas a tradução do usuário não bate com nenhuma referência.
+    return {
+        "language_id": language,
+        "original_token": lemma,
+        "translation_term": translation_term,
+        "sources_agreeing": [],
+        "sources_total": rows[0].get("sources_total", 0),
+        "weighted_score": 0.0,
+        "provenance": rows[0].get("provenance", "llm_derived"),
+    }
 
 
 def extract_philological_knowledge(

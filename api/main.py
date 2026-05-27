@@ -135,13 +135,12 @@ def refine_translation(req: RefineRequest):
         raise HTTPException(500, f"Pipeline error: {str(e)}")
 
     # Salva resultado
-    import json
     try:
         sb = get_supabase()
         sb.table("hermeneia_analyses").update({
             "status": "complete",
-            "segments": json.dumps([t.model_dump() for t in result["tokens"]], ensure_ascii=False, default=str),
-            "summary": result["summary"].model_dump(),
+            "segments": [t.model_dump(mode="json") for t in result["tokens"]],
+            "summary": result["summary"].model_dump(mode="json"),
             "processing_ms": result["processing_ms"],
             "completed_at": "now()",
         }).eq("id", analysis_id).execute()
