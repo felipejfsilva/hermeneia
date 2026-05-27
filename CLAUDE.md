@@ -51,7 +51,9 @@ curados têm o esqueleto "reservado" — BDB não os encobre.
   consensus` normaliza na consulta. Match de termo: `normalize_term` (stem EN).
 - `scoring.py` faz blend `0.6*léxico + 0.4*consenso` e dispara `CONSENSUS_LOW`
   se weighted_score < 0.40.
-- Grego usa lista CURADA de ~60 lemas NT (léxico tem 90k, inviável varrer).
+- Ambos usam lista CURADA de alta frequência (`CURATED_LEMMAS`: 60 lemas NT
+  gregos + `TOP_HEBREW_LEMMAS`) — NÃO o léxico inteiro (varrer 7998/90k é
+  inviável e ruidoso). Estado: hebraico 94 linhas/54 lemas, grego 69/60.
 
 ## Feito nesta sessão (commits na branch)
 1. Fix double-encode (`main.py`: segments/summary como JSONB nativo).
@@ -61,19 +63,14 @@ curados têm o esqueleto "reservado" — BDB não os encobre.
    vercel.json`, CORS por `ALLOWED_ORIGINS`, `DEPLOY.md`.
 5. LSJ grego (90k) + `greek_bare` + lookup cross-dialeto.
 6. Lewis & Short latim (51k) + `latin_bare`.
-7. Consenso robusto (chave normalizada) + extensão pro grego (8 fontes).
-
-### EM ANDAMENTO ao salvar esta memória
-Ingestão de dados rodando: re-key do consenso hebraico (pra chave consonantal)
-+ geração do consenso grego (~60 lemas NT × 8 fontes). **Pendente validar**
-end-to-end no João 1:1 (consenso grego deve disparar flags) e confirmar que o
-hebraico re-keado ainda casa no Gênesis 1:1. Conferir DB:
-`SELECT language_id, count(*) FROM hermeneia_token_consensus GROUP BY 1;`
+7. Consenso robusto (chave normalizada) + extensão pro grego (8 fontes),
+   validado: λόγος→"Word" unânime, ἀγάπη "charity" e σάρξ "sinful nature"
+   disparam CONSENSUS_LOW; hebraico re-keado segue casando.
 
 ## Pendente
 - **Deploy real** (Railway API + Vercel frontend) — depende das contas do
   usuário; passo a passo em `DEPLOY.md`. Não há PR aberto (não foi pedido).
-- Validar consenso grego (item em andamento acima).
+- Consenso para latim (sem traduções de referência seeded ainda).
 
 ## Dívidas de honestidade / limitações conhecidas (importante)
 - Consenso é `llm_derived` (memória do modelo, não corpus alinhado real). v2:
