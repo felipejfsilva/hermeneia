@@ -28,14 +28,16 @@ from supabase import create_client
 # Permite importar a normalização canônica do pipeline (mesma usada na consulta)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from api.pipeline.rag import normalize_term, normalized_lemma
+from scripts.lexicons.ingest_bdb import TOP_HEBREW_LEMMAS
 
 load_dotenv(override=True)
 
 client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-# Idiomas sem ~60 lemas curados teriam de varrer dezenas de milhares de
-# entradas de léxico; para esses, usamos uma lista curada de alta frequência.
+# O consenso roda sobre lemas de ALTA FREQUÊNCIA curados — não sobre o léxico
+# inteiro (BDB/LSJ têm dezenas de milhares; varrer tudo é inviável e ruidoso).
 CURATED_LEMMAS = {
+    "biblical_hebrew": list(TOP_HEBREW_LEMMAS.keys()),
     "koine_greek": [
         "θεός", "λόγος", "κύριος", "πνεῦμα", "πίστις", "ἀγάπη", "χάρις",
         "ἁμαρτία", "σάρξ", "ψυχή", "ζωή", "θάνατος", "κόσμος", "δικαιοσύνη",
@@ -219,7 +221,8 @@ def ingest(language: str, batch_size: int):
         inserted += len(chunk)
         print(f"  ✓ {inserted}/{len(all_rows)} linhas")
 
-    print(f"✓ Consenso ingerido: {inserted} linhas para {len(processed_lemmas)} lemas")
+    n_lemmas = len({r["original_token"] for r in all_rows})
+    print(f"✓ Consenso ingerido: {inserted} linhas para {n_lemmas} lemas")
 
 
 if __name__ == "__main__":
