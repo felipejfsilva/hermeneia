@@ -4,7 +4,7 @@ import { TokenChip } from './components/TokenChip'
 import { TokenPanel } from './components/TokenPanel'
 import { SummaryBar } from './components/SummaryBar'
 import { isRTL } from './utils'
-import { downloadLaudo } from './laudo'
+import { downloadLaudo, type LaudoLang } from './laudo'
 import type { TokenAnalysis, RefineResponse } from './types'
 
 interface Language {
@@ -51,6 +51,7 @@ export default function App() {
   const [witnesses, setWitnesses] = useState<SourceWitness[]>([])
   const [refLoading, setRefLoading] = useState(false)
   const [refError, setRefError] = useState<string | null>(null)
+  const [laudoLang, setLaudoLang] = useState<LaudoLang>('pt')
 
   useEffect(() => {
     getLanguages().then(setLanguages).catch(() => {})
@@ -84,6 +85,7 @@ export default function App() {
         language,
         translation_source: source || undefined,
         manuscript_title: title || undefined,
+        output_language: laudoLang,
       })
       setResult(data)
     } catch (e: unknown) {
@@ -341,6 +343,30 @@ export default function App() {
             />
           </div>
 
+          {/* Laudo language */}
+          <div>
+            <label style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Laudo / Verdict
+            </label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {(['pt', 'en'] as LaudoLang[]).map(lg => (
+                <button
+                  key={lg}
+                  onClick={() => setLaudoLang(lg)}
+                  style={{
+                    flex: 1, padding: '7px', borderRadius: '8px',
+                    background: laudoLang === lg ? 'rgba(99,102,241,0.16)' : '#0f172a',
+                    border: `1px solid ${laudoLang === lg ? 'rgba(99,102,241,0.45)' : '#1e293b'}`,
+                    color: laudoLang === lg ? '#a5b4fc' : '#64748b',
+                    fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600,
+                  }}
+                >
+                  {lg === 'pt' ? 'Português' : 'English'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -417,7 +443,7 @@ export default function App() {
                 <button
                   onClick={() => downloadLaudo({
                     languageName: languages.find(l => l.id === language)?.name ?? language,
-                    original, translation, source, title,
+                    original, translation, source, title, lang: laudoLang,
                   }, result)}
                   style={{
                     padding: '7px 14px', borderRadius: '8px',

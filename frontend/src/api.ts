@@ -7,6 +7,7 @@ export async function refineTranslation(payload: {
   translation_source?: string
   manuscript_title?: string
   researcher_notes?: string
+  output_language?: string
 }) {
   const res = await fetch(`${BASE}/refine`, {
     method: 'POST',

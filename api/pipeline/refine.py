@@ -285,6 +285,7 @@ def generate_narrative(
     original_text: str,
     translation: str,
     translation_source: str | None,
+    output_language: str = "pt",
 ) -> str:
     """
     Parecer em prosa do audit. SINTETIZA os achados já computados — não
@@ -308,6 +309,12 @@ def generate_narrative(
     digest = "\n".join(lines)
     src = f" ({translation_source})" if translation_source else ""
 
+    lang_instr = (
+        "Escreva em português do Brasil, prosa sóbria e precisa."
+        if output_language == "pt"
+        else "Write in clear scholarly English."
+    )
+
     prompt = f"""You are writing the summary verdict of a philological translation audit.
 
 Source text ({lang_display}): {original_text}
@@ -319,12 +326,14 @@ average confidence {summary.avg_confidence}, flag counts {summary.flags_breakdow
 Per-token findings — this is the ONLY evidence you may use:
 {digest}
 
-Write a concise scholarly audit summary (2-3 short paragraphs) addressed to the translator:
+Write a concise scholarly audit verdict (2-3 short paragraphs) addressed to the translator:
+- {lang_instr}
 - Base EVERY statement strictly on the findings above. Do NOT introduce any lexical, \
 grammatical, historical, or theological claim not present in the findings, and invent no citations.
 - First give the overall reliability, then single out the specific flagged renderings \
 (name the token, its rendering, the flag, and the consensus numbers or controversy note that justify it).
-- Sober, precise prose. No markdown headers, no bullet lists."""
+- Greek/Hebrew/Latin tokens and the lexicon glosses stay in their original form (do not translate them).
+- No markdown headers, no bullet lists."""
 
     resp = client.messages.create(
         model="claude-sonnet-4-5",
@@ -340,6 +349,7 @@ def run_pipeline(
     language: str,
     translation_source: str | None = None,
     researcher_notes: str | None = None,
+    output_language: str = "pt",
     max_workers: int = 6,
 ) -> dict:
     """
@@ -418,7 +428,7 @@ def run_pipeline(
     try:
         summary.narrative = generate_narrative(
             token_analyses_out, summary, language,
-            original_text, translation, translation_source,
+            original_text, translation, translation_source, output_language,
         )
     except Exception:
         summary.narrative = None

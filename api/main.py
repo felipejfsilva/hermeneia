@@ -162,6 +162,7 @@ def refine_translation(req: RefineRequest):
             language=req.language.value,
             translation_source=req.translation_source,
             researcher_notes=req.researcher_notes,
+            output_language=req.output_language,
         )
     except Exception as e:
         # Atualiza status para erro

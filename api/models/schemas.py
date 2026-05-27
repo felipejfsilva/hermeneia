@@ -113,6 +113,10 @@ class RefineRequest(BaseModel):
         default=None,
         description="Notas do pesquisador sobre o trecho (período, corpus, contexto)"
     )
+    output_language: str = Field(
+        default="pt",
+        description="Idioma do parecer/laudo: 'pt' (português) ou 'en' (inglês)"
+    )
 
 
 class RefineResponse(BaseModel):
