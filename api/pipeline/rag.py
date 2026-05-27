@@ -39,28 +39,55 @@ def consonantal(lemma: str) -> str:
     return "".join(out)
 
 
+_GREEK_LANGS = {"koine_greek", "classical_greek"}
+
+
+def greek_bare(lemma: str) -> str:
+    """Forma 'nua' do grego: só letras minúsculas, sem acentos/espíritos/iota
+    subscrito, com sigma final normalizado (ς→σ). Casa a vocalização do LSJ
+    com o lema produzido pelo alinhamento."""
+    import unicodedata
+    out = []
+    for ch in unicodedata.normalize("NFD", (lemma or "").lower()):
+        if unicodedata.combining(ch):
+            continue
+        if 0x03B1 <= ord(ch) <= 0x03C9:  # α..ω
+            out.append("σ" if ch == "ς" else ch)
+    return "".join(out)
+
+
+def normalized_lemma(lemma: str, language: str) -> str:
+    """Chave de match tolerante à vocalização, por família de língua."""
+    if language in _GREEK_LANGS:
+        return greek_bare(lemma)
+    return consonantal(lemma)
+
+
 def lookup_lexicon(lemma: str, language: str) -> list[dict]:
     """
     Busca entrada de léxico por lemma.
 
     1. match exato pela forma vocalizada (preserva os lemas curados)
-    2. fallback pelo esqueleto consonantal, ordenado por frequência de
-       atestação (sentido dominante primeiro) — tolera vocalização divergente.
+    2. fallback pela chave normalizada (consonantal p/ hebraico, nua p/ grego),
+       ordenado por frequência de atestação — tolera vocalização divergente.
+
+    Grego: koine e clássico compartilham o LSJ, então a busca cobre ambos.
     """
+    langs = list(_GREEK_LANGS) if language in _GREEK_LANGS else [language]
     try:
         sb = get_supabase()
-        result = sb.table("hermeneia_lexicon_entries").select("*").eq(
-            "language_id", language
+        result = sb.table("hermeneia_lexicon_entries").select("*").in_(
+            "language_id", langs
         ).eq("lemma", lemma).execute()
         if result.data:
             return result.data
 
-        cons = consonantal(lemma)
-        if not cons:
+        norm = normalized_lemma(lemma, language)
+        if not norm:
             return []
-        result = sb.table("hermeneia_lexicon_entries").select("*").eq(
-            "language_id", language
-        ).eq("lemma_consonantal", cons).order(
+        result = sb.table("hermeneia_lexicon_entries").select("*").in_(
+            "language_id", langs
+        ).eq("lemma_consonantal", norm).order(
             "attestation_count", desc=True, nullsfirst=False
         ).execute()
         return result.data or []
