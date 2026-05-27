@@ -27,11 +27,28 @@ from supabase import create_client
 
 # Permite importar a normalização canônica do pipeline (mesma usada na consulta)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from api.pipeline.rag import normalize_term
+from api.pipeline.rag import normalize_term, normalized_lemma
 
 load_dotenv(override=True)
 
 client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+# Idiomas sem ~60 lemas curados teriam de varrer dezenas de milhares de
+# entradas de léxico; para esses, usamos uma lista curada de alta frequência.
+CURATED_LEMMAS = {
+    "koine_greek": [
+        "θεός", "λόγος", "κύριος", "πνεῦμα", "πίστις", "ἀγάπη", "χάρις",
+        "ἁμαρτία", "σάρξ", "ψυχή", "ζωή", "θάνατος", "κόσμος", "δικαιοσύνη",
+        "νόμος", "ἔργον", "σῶμα", "αἷμα", "υἱός", "πατήρ", "βασιλεία",
+        "ἐκκλησία", "εὐαγγέλιον", "ἀλήθεια", "φῶς", "σκότος", "δόξα",
+        "εἰρήνη", "ἐλπίς", "σωτηρία", "ἄγγελος", "διάβολος", "προφήτης",
+        "ἀπόστολος", "μαθητής", "ἀρχή", "τέλος", "αἰών", "οὐρανός", "γῆ",
+        "ἄρτος", "ἄνθρωπος", "καρδία", "ὁδός", "θύρα", "ἀμνός", "σταυρός",
+        "ἀνάστασις", "βάπτισμα", "μετάνοια", "παράκλητος", "σοφία",
+        "γνῶσις", "μυστήριον", "παρουσία", "κρίσις", "ἔλεος", "χαρά",
+        "δοῦλος", "ἐντολή",
+    ],
+}
 
 LANG_NAMES = {
     "biblical_hebrew": "Biblical Hebrew",
@@ -133,11 +150,12 @@ def build_rows(lemma: str, renderings: dict, weights: dict, language: str) -> li
         g["sources"].append(src)
         g["weight"] += weights[src]
 
+    key = normalized_lemma(lemma, language) or lemma
     rows = []
     for term, g in groups.items():
         rows.append({
             "language_id": language,
-            "original_token": lemma,
+            "original_token": key,
             "translation_term": term,
             "sources_agreeing": sorted(g["sources"]),
             "sources_total": len(present),
@@ -149,11 +167,14 @@ def build_rows(lemma: str, renderings: dict, weights: dict, language: str) -> li
 
 def ingest(language: str, batch_size: int):
     sb = get_supabase()
-    lemmas = fetch_lemmas(sb, language)
+    if language in CURATED_LEMMAS:
+        lemmas = [{"lemma": l, "gloss_primary": ""} for l in CURATED_LEMMAS[language]]
+    else:
+        lemmas = fetch_lemmas(sb, language)
     weights = fetch_weights(sb, language)
 
     if not lemmas:
-        print(f"Nenhum lema indexado para {language}. Rode a ingestão de léxico antes.")
+        print(f"Nenhum lema para {language}. Rode a ingestão de léxico antes ou adicione lista curada.")
         return
     if not weights:
         print(f"Nenhuma tradução de referência para {language}.")
@@ -183,16 +204,18 @@ def ingest(language: str, batch_size: int):
         print("Nada para inserir.")
         return
 
-    # Idempotente: limpa as linhas dos lemas processados, depois insere.
-    processed_lemmas = sorted({r["original_token"] for r in all_rows})
+    # Idempotente: limpa o consenso do idioma e reinsere (chaves normalizadas).
     sb.table("hermeneia_token_consensus").delete().eq(
         "language_id", language
-    ).in_("original_token", processed_lemmas).execute()
+    ).execute()
 
     inserted = 0
     for i in range(0, len(all_rows), 50):
         chunk = all_rows[i:i + 50]
-        sb.table("hermeneia_token_consensus").insert(chunk).execute()
+        sb.table("hermeneia_token_consensus").upsert(
+            chunk, on_conflict="language_id,original_token,translation_term",
+            ignore_duplicates=True,
+        ).execute()
         inserted += len(chunk)
         print(f"  ✓ {inserted}/{len(all_rows)} linhas")
 

@@ -165,20 +165,21 @@ def get_reference_consensus(
     """
     Busca o consenso das traduções de referência para um lema.
 
-    Chaveado por LEMMA (não pelo token de superfície), porque é assim que o
-    consenso é indexado e como o léxico é consultado. Retorna a linha cujo
-    termo de referência casa com a tradução do usuário (match lenient).
+    Chaveado pela forma NORMALIZADA do lema (consonantal/nua/folding latino),
+    a mesma usada no léxico — robusto a divergências de vocalização/encoding
+    entre o lema do alinhamento e o que foi indexado.
 
     - lema sem dados de consenso  → None (cai no scoring só-léxico)
     - lema com dados, termo casa  → linha correspondente (suporte real)
     - lema com dados, termo diverge → consenso sintético com weighted_score=0
       (o usuário usou uma leitura que nenhuma referência usa → CONSENSUS_LOW)
     """
+    key = normalized_lemma(lemma, language) or lemma
     try:
         sb = get_supabase()
         result = sb.table("hermeneia_token_consensus").select("*").eq(
             "language_id", language
-        ).eq("original_token", lemma).execute()
+        ).eq("original_token", key).execute()
     except Exception:
         return None
 
@@ -193,7 +194,7 @@ def get_reference_consensus(
     # Lema conhecido, mas a tradução do usuário não bate com nenhuma referência.
     return {
         "language_id": language,
-        "original_token": lemma,
+        "original_token": key,
         "translation_term": translation_term,
         "sources_agreeing": [],
         "sources_total": rows[0].get("sources_total", 0),
