@@ -111,7 +111,7 @@ Respond ONLY with JSON:
     "issue_description": "<brief explanation>"
   }},
   "reasoning": "<2-3 sentence philological reasoning citing sources>",
-  "refined": "<best translation — same as existing if adequate>",
+  "refined": "<best translation of this token IN THE SAME LANGUAGE as the existing translation; preserve grammatical form (number, tense, person, case, degree comparative/superlative) of the existing; one concise word or short phrase, no paraphrase; same as existing if adequate>",
   "alternative_glosses": ["<alt1>", "<alt2>"]
 }}"""
     else:
@@ -142,7 +142,7 @@ Provide a complete philological analysis. Respond ONLY with JSON:
     "issue_description": "<brief explanation>"
   }},
   "reasoning": "<2-3 sentence philological reasoning citing sources>",
-  "refined": "<best translation — same as existing if adequate>",
+  "refined": "<best translation of this token IN THE SAME LANGUAGE as the existing translation; preserve grammatical form (number, tense, person, case, degree comparative/superlative) of the existing; one concise word or short phrase, no paraphrase; same as existing if adequate>",
   "alternative_glosses": ["<alt1>", "<alt2>"]
 }}"""
 
