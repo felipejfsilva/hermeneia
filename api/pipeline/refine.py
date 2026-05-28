@@ -103,7 +103,7 @@ Lexicon evidence (BDB):
 
 Respond ONLY with JSON:
 {{
-  "existing_in_english": "<the existing translation's meaning in English; identical if it is already English>",
+  "existing_in_english": "<the single most standard English word a lexicon would use for the existing translation's meaning (e.g. 'faith', 'love', 'hope'); one word, no article, no paraphrase; identical if already English>",
   "translation_evaluation": {{
     "adequate": <true/false>,
     "captures_full_range": <true/false>,
@@ -134,7 +134,7 @@ Provide a complete philological analysis. Respond ONLY with JSON:
   "parallel_passages": ["<ref1>", "<ref2>"],
   "controversy_notes": "<documented scholarly controversies or null>",
   "source_citation": "<lexicon reference — e.g. BDB p.135>",
-  "existing_in_english": "<the existing translation's meaning in English; identical if it is already English>",
+  "existing_in_english": "<the single most standard English word a lexicon would use for the existing translation's meaning (e.g. 'faith', 'love', 'hope'); one word, no article, no paraphrase; identical if already English>",
   "translation_evaluation": {{
     "adequate": <true/false>,
     "captures_full_range": <true/false>,
