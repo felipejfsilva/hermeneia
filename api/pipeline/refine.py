@@ -103,6 +103,7 @@ Lexicon evidence (BDB):
 
 Respond ONLY with JSON:
 {{
+  "existing_in_english": "<the existing translation's meaning in English; identical if it is already English>",
   "translation_evaluation": {{
     "adequate": <true/false>,
     "captures_full_range": <true/false>,
@@ -133,6 +134,7 @@ Provide a complete philological analysis. Respond ONLY with JSON:
   "parallel_passages": ["<ref1>", "<ref2>"],
   "controversy_notes": "<documented scholarly controversies or null>",
   "source_citation": "<lexicon reference — e.g. BDB p.135>",
+  "existing_in_english": "<the existing translation's meaning in English; identical if it is already English>",
   "translation_evaluation": {{
     "adequate": <true/false>,
     "captures_full_range": <true/false>,
@@ -200,9 +202,6 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
     indexed = lookup_lexicon(lemma, language)
     indexed_entry = indexed[0] if indexed else None
 
-    # Consensus cacheado (chaveado por lemma, não pelo token de superfície)
-    consensus = get_reference_consensus(lemma, trans_span, language)
-
     # Chamada LLM única por token
     try:
         lex_data = analyze_token_single_call(
@@ -230,6 +229,11 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
                          "(LLM reasoning unavailable for this token).",
             "translation_evaluation": {},
         }
+
+    # Consensus chaveado por lemma; casa pelo EQUIVALENTE INGLÊS da renderização
+    # (consenso é ancorado em termos ingleses — permite auditar traduções PT/etc.)
+    consensus_term = lex_data.get("existing_in_english") or trans_span
+    consensus = get_reference_consensus(lemma, consensus_term, language)
 
     # Scoring objetivo (sem LLM)
     confidence, flags, alts_from_score = compute_confidence(language, lex_data, trans_span, consensus)
