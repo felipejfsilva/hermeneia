@@ -77,8 +77,11 @@ def compute_confidence(
             score -= 0.20
         issue = eval_data.get("issue_type")
         if issue == "semantic_narrowing":
-            # Palavras gramaticais não "estreitam" sentido — evita ruído de flag.
-            if not _is_function_word(lexicon_data, translation_span):
+            # Suprime ruído: (a) palavras gramaticais não "estreitam" sentido;
+            # (b) se o consenso das referências é praticamente unânime (≥85%),
+            # é convenção tradutória consolidada — não estreitamento legítimo.
+            ws = consensus_data.get("weighted_score", 0) if consensus_data else 0
+            if not _is_function_word(lexicon_data, translation_span) and ws < 0.85:
                 score -= 0.10
                 flags.append(FlagType.SEMANTIC_NARROWING)
         elif issue == "idiomatic_missed":
