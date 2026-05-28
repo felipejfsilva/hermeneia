@@ -19,7 +19,8 @@ healthcheck em `/health`) e `.python-version` (3.11).
    | `SUPABASE_SERVICE_KEY` | **service role key** (Supabase → Settings → API → `service_role`). Use só no servidor; bypassa RLS. |
    | `SUPABASE_KEY` | publishable (`sb_publishable_...`) — fallback se faltar a service key |
    | `ALLOWED_ORIGINS` | a URL do frontend no Vercel (ex.: `https://hermeneia.vercel.app`) |
-   | `REFINE_RATE_PER_MIN` | (opcional, default `10`) — limite de auditorias por IP por minuto |
+   | `REFINE_RATE_PER_MIN` | (opcional, default `10`) — limite por IP por minuto |
+   | `REFINE_DAILY_CAP` | (opcional, default `500`) — teto global de auditorias por 24h (defesa do budget Anthropic) |
 
    `PORT` é injetado pelo Railway — não defina.
 3. Deploy. Confira em `https://<app>.up.railway.app/health` → `{"status":"ok"}`.
@@ -28,6 +29,11 @@ healthcheck em `/health`) e `.python-version` (3.11).
 > mas RLS bloqueia leitura/atualização de `hermeneia_analyses`/`manuscripts` na
 > chave pública. O servidor lê com a service key. Rate limit é por IP em memória
 > (single instance); se escalar horizontal no Railway, trocar por Redis/Upstash.
+>
+> **Proteção de budget:** `REFINE_DAILY_CAP` impõe um teto duro de auditorias
+> por 24h (conta análises em `hermeneia_analyses` na janela). Quando atinge,
+> `/refine` devolve 429 até a janela rolar. Endpoint `GET /usage` mostra
+> `used_last_24h` e o teto — útil pra monitorar sem entrar no banco.
 
 > `requirements.txt` fixa `supabase==2.30.0`, necessário para aceitar a chave
 > `sb_publishable_` (versões antigas a rejeitam).

@@ -7,6 +7,7 @@ import uuid
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -53,6 +54,37 @@ def _check_rate_limit(request: Request):
     _rl_buckets[ip] = bucket
 
 
+# ── Teto diário global (defesa do budget Anthropic) ───────────────────────────
+# Desliga 0/negativo. Padrão: 500 análises por 24h.
+_DAILY_CAP = int(os.environ.get("REFINE_DAILY_CAP", "500"))
+
+
+def _usage_last_24h() -> int | None:
+    try:
+        sb = get_supabase()
+        since = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        res = sb.table("hermeneia_analyses").select(
+            "id", count="exact"
+        ).gte("created_at", since).execute()
+        return res.count or 0
+    except Exception:
+        return None  # fail-open em dev sem service key
+
+
+def _check_daily_cap():
+    if _DAILY_CAP <= 0:
+        return
+    used = _usage_last_24h()
+    if used is None:
+        return  # query falhou → não bloqueia
+    if used >= _DAILY_CAP:
+        raise HTTPException(
+            429,
+            f"Capacidade diária atingida ({_DAILY_CAP} análises/24h). "
+            "O sistema é gratuito e o custo é bancado; volte amanhã.",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("HERMENEIA v1 — iniciando")
@@ -87,6 +119,17 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "1.0.0"}
+
+
+@app.get("/usage")
+def usage():
+    """Consumo agregado das últimas 24h e o teto configurado."""
+    used = _usage_last_24h()
+    return {
+        "used_last_24h": used,
+        "daily_cap": _DAILY_CAP,
+        "rate_per_ip_per_min": _RL_MAX_PER_IP,
+    }
 
 
 # ── Languages ─────────────────────────────────────────────────────────────────
@@ -152,6 +195,7 @@ def refine_translation(req: RefineRequest, request: Request):
     - Detecção de inconsistência intra-documento
     """
     _check_rate_limit(request)
+    _check_daily_cap()
     if len(req.original_text) > 5000:
         raise HTTPException(400, "Texto original excede 5000 caracteres (MVP limit)")
     if len(req.translation) > 10000:
