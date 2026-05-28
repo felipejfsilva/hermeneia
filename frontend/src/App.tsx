@@ -4,7 +4,7 @@ import { TokenChip } from './components/TokenChip'
 import { TokenPanel } from './components/TokenPanel'
 import { SummaryBar } from './components/SummaryBar'
 import { isRTL } from './utils'
-import { downloadLaudo, type LaudoLang } from './laudo'
+import { downloadLaudo, printLaudoPdf, type LaudoLang } from './laudo'
 import type { TokenAnalysis, RefineResponse } from './types'
 
 interface Language {
@@ -440,19 +440,34 @@ export default function App() {
                 <div style={{ fontSize: '0.72rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {title || 'Análise'} · {result.language}
                 </div>
-                <button
-                  onClick={() => downloadLaudo({
-                    languageName: languages.find(l => l.id === language)?.name ?? language,
-                    original, translation, source, title, lang: laudoLang,
-                  }, result)}
-                  style={{
-                    padding: '7px 14px', borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
-                    border: 'none', color: '#fff', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600,
-                  }}
-                >
-                  ↓ Baixar laudo (.md)
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => printLaudoPdf({
+                      languageName: languages.find(l => l.id === language)?.name ?? language,
+                      original, translation, source, title, lang: laudoLang,
+                    }, result)}
+                    style={{
+                      padding: '7px 14px', borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)',
+                      border: 'none', color: '#fff', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600,
+                    }}
+                  >
+                    ↓ PDF
+                  </button>
+                  <button
+                    onClick={() => downloadLaudo({
+                      languageName: languages.find(l => l.id === language)?.name ?? language,
+                      original, translation, source, title, lang: laudoLang,
+                    }, result)}
+                    style={{
+                      padding: '7px 14px', borderRadius: '8px',
+                      background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
+                      color: '#a5b4fc', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600,
+                    }}
+                  >
+                    ↓ .md
+                  </button>
+                </div>
               </div>
 
               {/* Summary bar */}

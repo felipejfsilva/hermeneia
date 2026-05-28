@@ -180,6 +180,85 @@ export function buildLaudo(meta: LaudoMeta, r: RefineResponse): string {
   return L.join('\n')
 }
 
+function _escHtml(s: string): string {
+  return (s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function _inline(s: string): string {
+  return _escHtml(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+}
+
+function _mdToHtml(md: string): string {
+  const lines = md.split('\n')
+  const out: string[] = []
+  let i = 0
+  let inList = false
+  const closeList = () => { if (inList) { out.push('</ul>'); inList = false } }
+  const parseRow = (r: string) =>
+    r.replace(/^\||\|$/g, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'))
+  while (i < lines.length) {
+    const line = lines[i]
+    if (line.startsWith('|')) {
+      const rows: string[] = []
+      while (i < lines.length && lines[i].startsWith('|')) { rows.push(lines[i]); i++ }
+      closeList()
+      const header = parseRow(rows[0])
+      const body = rows.slice(1).filter(r => !/^\|[-\s|]+\|?$/.test(r))
+      out.push('<table><thead><tr>' + header.map(h => `<th>${_inline(h)}</th>`).join('') + '</tr></thead><tbody>')
+      for (const br of body) out.push('<tr>' + parseRow(br).map(c => `<td>${_inline(c)}</td>`).join('') + '</tr>')
+      out.push('</tbody></table>')
+      continue
+    }
+    if (line.startsWith('## ')) { closeList(); out.push(`<h2>${_inline(line.slice(3))}</h2>`) }
+    else if (line.startsWith('# ')) { closeList(); out.push(`<h1>${_inline(line.slice(2))}</h1>`) }
+    else if (line.trim() === '---') { closeList(); out.push('<hr/>') }
+    else if (line.startsWith('- ')) { if (!inList) { out.push('<ul>'); inList = true } out.push(`<li>${_inline(line.slice(2))}</li>`) }
+    else if (line.trim() === '') { closeList() }
+    else { closeList(); out.push(`<p>${_inline(line)}</p>`) }
+    i++
+  }
+  closeList()
+  return out.join('\n')
+}
+
+const _PRINT_CSS = `
+@page { size: A4; margin: 18mm; }
+body { font-family: "Times New Roman", Georgia, "SBL Hebrew", serif; font-size: 11pt; line-height: 1.5; color: #111; max-width: 800px; margin: 24px auto; padding: 0 16px; }
+h1 { font-size: 17pt; margin: 0 0 4px; }
+h2 { font-size: 13pt; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin: 20px 0 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 9.5pt; margin: 8px 0; }
+th, td { border: 1px solid #bbb; padding: 4px 6px; text-align: left; vertical-align: top; }
+th { background: #f0f0f0; }
+hr { border: none; border-top: 2px solid #333; margin: 16px 0; }
+ul { margin: 6px 0; padding-left: 20px; }
+p { margin: 6px 0; }
+em { color: #555; }
+@media print { body { margin: 0; } a { color: #000; } }
+`
+
+export function buildLaudoHtml(meta: LaudoMeta, r: RefineResponse): string {
+  const lang: LaudoLang = meta.lang ?? 'pt'
+  const head = (lang === 'pt' ? 'Laudo Filológico' : 'Philological Audit Report')
+  const title = `${head} — ${meta.title || ''}`.trim()
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">` +
+    `<title>${_escHtml(title)}</title><style>${_PRINT_CSS}</style></head>` +
+    `<body>${_mdToHtml(buildLaudo(meta, r))}</body></html>`
+}
+
+export function printLaudoPdf(meta: LaudoMeta, r: RefineResponse) {
+  const w = window.open('', '_blank')
+  if (!w) {
+    alert(meta.lang === 'en'
+      ? 'Allow pop-ups to generate the PDF.'
+      : 'Permita pop-ups para gerar o PDF.')
+    return
+  }
+  w.document.write(buildLaudoHtml(meta, r))
+  w.document.close()
+  w.focus()
+  setTimeout(() => w.print(), 350)
+}
+
 export function downloadLaudo(meta: LaudoMeta, r: RefineResponse) {
   const md = buildLaudo(meta, r)
   const slug = (meta.title || 'laudo').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
