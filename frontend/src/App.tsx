@@ -5,6 +5,7 @@ import { TokenPanel } from './components/TokenPanel'
 import { SummaryBar } from './components/SummaryBar'
 import { isRTL } from './utils'
 import { downloadLaudo, printLaudoPdf, type LaudoLang } from './laudo'
+import { Landing } from './Landing'
 import type { TokenAnalysis, RefineResponse } from './types'
 
 interface Language {
@@ -52,10 +53,21 @@ export default function App() {
   const [refLoading, setRefLoading] = useState(false)
   const [refError, setRefError] = useState<string | null>(null)
   const [laudoLang, setLaudoLang] = useState<LaudoLang>('pt')
+  const [view, setView] = useState<'landing' | 'audit'>(() =>
+    typeof window !== 'undefined' && window.location.hash === '#audit' ? 'audit' : 'landing'
+  )
 
   useEffect(() => {
     getLanguages().then(setLanguages).catch(() => {})
+    const onHash = () => setView(window.location.hash === '#audit' ? 'audit' : 'landing')
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
   }, [])
+
+  function goAudit() { window.location.hash = '#audit' }
+  function goHome()  { window.location.hash = '' }
+
+  if (view === 'landing') return <Landing onStart={goAudit} />
 
   const rtl = isRTL(languages.find(l => l.id === language)?.script ?? '')
 
@@ -158,8 +170,15 @@ export default function App() {
           <div style={{ fontWeight: 700, fontSize: '1rem', letterSpacing: '-0.01em' }}>Hermeneia</div>
           <div style={{ fontSize: '0.72rem', color: '#475569' }}>Philological Translation Audit</div>
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#334155' }}>
-          MVP · {languages.length} languages indexed
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <button onClick={goHome} style={{
+            padding: '6px 10px', borderRadius: '6px',
+            background: 'transparent', border: '1px solid #1e293b',
+            color: '#94a3b8', fontSize: '0.72rem', cursor: 'pointer',
+          }}>← Início</button>
+          <div style={{ fontSize: '0.72rem', color: '#334155' }}>
+            MVP · {languages.length} languages indexed
+          </div>
         </div>
       </header>
 
