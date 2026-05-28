@@ -78,15 +78,47 @@ curados têm o esqueleto "reservado" — BDB não os encobre.
 - Frontend: bloco "Fetch original by reference" → cards de testemunho clicáveis
   que preenchem o original.
 
-## Parecer em prosa (narrative)
-- `refine.py:generate_narrative` (1 chamada Sonnet) sintetiza os achados já
-  computados num texto-veredito; `AnalysisSummary.narrative`; bloco "Audit
-  Verdict" no frontend. NÃO introduz afirmações fora dos dados.
+## Laudo (entregável final, bilíngue)
+- `RefineRequest.output_language` ('pt'|'en', default 'pt') controla:
+  - `generate_narrative` → veredito em prosa (1 chamada Sonnet); SINTETIZA os
+    achados, não introduz afirmações fora dos dados.
+  - `generate_corrected_translation` → texto corrido sugerido (1 chamada Sonnet)
+    aplicando SOMENTE as correções sinalizadas, no MESMO idioma da tradução
+    auditada (não é reescrita livre). Pulado se não há correções.
+  - rótulos do laudo (PT/EN).
+- `frontend/src/laudo.ts`: `buildLaudo` (Markdown, fonte única) + `buildLaudoHtml`
+  via `_mdToHtml` (mesmo conteúdo, estilizado A4) + `printLaudoPdf` (abre janela
+  e dispara o Salvar-como-PDF do navegador — Unicode grego/hebraico renderiza
+  certo, texto fica selecionável). `downloadLaudo` baixa `.md`.
+- Estrutura: cabeçalho · Veredito · Síntese · Análise por token · Metodologia
+  · `---` · **ORIGINAL** / **TRADUÇÃO** / **CORREÇÕES SUGERIDAS** + texto
+  corrido sugerido. Botões "↓ PDF" e "↓ .md" no painel de resultados.
+- Correções sugeridas seguem regra principiada: SÓ tokens sinalizados, sugestão
+  limpa (`_cleanSuggestion`) ≠ existente, não-artigo, dedup por lema sem
+  pontuação (mesma regra em `laudo.ts` e `refine.py:flagged_corrections`).
+
+## Scoring com guards (`scoring.py`)
+- `semantic_narrowing` é SUPRIMIDO em dois casos (evita ruído):
+  - **Palavras gramaticais** (artigo, conjunção, preposição, marcador de
+    objeto direto) — detectado pela glosa/renderização ser uma function word.
+  - **Consenso quase-unânime** (`weighted_score ≥ 0.85`, ~7/8) — convenção
+    tradutória consolidada (ex.: πίστις→"faith"/"fé" 8/8 não dispara).
+- `CONSENSUS_LOW`: `weighted_score < 0.40`. Blend final: `0.6·léxico + 0.4·consenso`.
+
+## Consenso bilíngue (suporta auditar traduções não-inglesas)
+- Os termos do consenso são ancorados em inglês ("love", "faith", "hope"...).
+- `analyze_token_single_call` retorna `existing_in_english` (uma palavra padrão
+  de léxico para a rendição do usuário); `process_token` casa o consenso por
+  esse equivalente — assim "amor"/"fé"/"esperança" da Almeida casam com
+  "love"/"faith"/"hope" e param de tomar falso `CONSENSUS_LOW`.
+- `refined` (sugestão por token) preserva forma gramatical (número/tempo/grau)
+  e SAI no idioma da tradução auditada (não vaza inglês em audit PT).
 
 ## Pendente
 - **Deploy real** (Railway API + Vercel frontend) — depende das contas do
   usuário; passo a passo em `DEPLOY.md`. Não há PR aberto (não foi pedido).
 - Consenso para latim (sem traduções de referência seeded ainda).
+- Bizantino como 3º testemunho grego (`byztxt` resistiu; achar fonte alternativa).
 
 ## Dívidas de honestidade / limitações conhecidas (importante)
 - Consenso é `llm_derived` (memória do modelo, não corpus alinhado real). v2:
