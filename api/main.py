@@ -5,8 +5,9 @@ Auditor de traduções de manuscritos históricos
 import os
 import uuid
 import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
@@ -20,10 +21,36 @@ from api.references import resolve_reference
 from supabase import create_client
 
 def get_supabase():
-    return create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_KEY"]
-    )
+    # Service key (bypassa RLS) é o esperado no servidor; cai pra publishable
+    # em dev local — escritas em analyses/manuscripts vão falhar silenciosamente
+    # (try/except no save path), mas a resposta de /refine continua funcionando.
+    key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
+    return create_client(os.environ["SUPABASE_URL"], key)
+
+
+# ── Rate limiting (in-memory; aberto/anônimo) ─────────────────────────────────
+# Defesa básica anti-abuso do budget Anthropic. Single instance; se escalar
+# horizontalmente no Railway, trocar por Redis/Upstash.
+_RL_WINDOW_SEC = 60
+_RL_MAX_PER_IP = int(os.environ.get("REFINE_RATE_PER_MIN", "10"))
+_rl_buckets: dict[str, list[float]] = defaultdict(list)
+
+
+def _client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_rate_limit(request: Request):
+    ip = _client_ip(request)
+    now = time.time()
+    bucket = [t for t in _rl_buckets[ip] if now - t < _RL_WINDOW_SEC]
+    if len(bucket) >= _RL_MAX_PER_IP:
+        raise HTTPException(429, f"Rate limit: máx {_RL_MAX_PER_IP} análises por minuto por IP. Tente em instantes.")
+    bucket.append(now)
+    _rl_buckets[ip] = bucket
 
 
 @asynccontextmanager
@@ -113,7 +140,7 @@ def source_text(ref: str, language: str | None = None):
 # ── Core endpoint ─────────────────────────────────────────────────────────────
 
 @app.post("/refine", response_model=RefineResponse)
-def refine_translation(req: RefineRequest):
+def refine_translation(req: RefineRequest, request: Request):
     """
     Audita uma tradução existente contra evidência filológica documentada.
 
@@ -124,6 +151,7 @@ def refine_translation(req: RefineRequest):
     - Reasoning citado
     - Detecção de inconsistência intra-documento
     """
+    _check_rate_limit(request)
     if len(req.original_text) > 5000:
         raise HTTPException(400, "Texto original excede 5000 caracteres (MVP limit)")
     if len(req.translation) > 10000:
