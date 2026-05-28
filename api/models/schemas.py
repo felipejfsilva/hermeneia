@@ -87,6 +87,7 @@ class AnalysisSummary(BaseModel):
     high_confidence_pct: float       # % tokens com confidence > 0.75
     low_confidence_pct: float        # % tokens com confidence < 0.50
     narrative: Optional[str] = None  # parecer em prosa, sintetizado dos achados
+    corrected_translation: Optional[str] = None  # texto corrido sugerido (mesma língua da tradução)
 
 
 # ── Request / Response ─────────────────────────────────────────────────────────

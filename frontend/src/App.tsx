@@ -491,6 +491,14 @@ export default function App() {
                       lineHeight: 1.6, color: '#cbd5e1',
                     }}>{para}</p>
                   ))}
+                  {result.summary.corrected_translation && (
+                    <p style={{ margin: '10px 0 0', paddingTop: '10px', borderTop: '1px solid rgba(99,102,241,0.18)', fontSize: '0.83rem', lineHeight: 1.6, color: '#cbd5e1' }}>
+                      <strong style={{ color: '#818cf8' }}>
+                        {laudoLang === 'en' ? 'Suggested running text' : 'Texto corrido sugerido'}:
+                      </strong>{' '}
+                      <span style={{ fontStyle: 'italic' }}>{result.summary.corrected_translation}</span>
+                    </p>
+                  )}
                 </div>
               )}
 

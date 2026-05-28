@@ -57,6 +57,7 @@ export interface AnalysisSummary {
   high_confidence_pct: number
   low_confidence_pct: number
   narrative?: string
+  corrected_translation?: string
 }
 
 export interface RefineResponse {

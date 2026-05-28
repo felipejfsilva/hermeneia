@@ -282,6 +282,66 @@ def process_token(item: dict, language: str) -> TokenAnalysis:
     )
 
 
+_CORR_ARTICLES = {"the", "a", "an", "o", "os", "as", "um", "uma", "de", "da"}
+
+
+def _clean_suggestion(s: str) -> str:
+    return re.split(r"[(;\n]", s or "")[0].strip().strip("\"'.,").strip()
+
+
+def flagged_corrections(tokens: list[TokenAnalysis]) -> list[dict]:
+    """Tokens SINALIZADOS com sugestão limpa != existente (mesma regra do laudo)."""
+    seen, out = set(), []
+    for t in tokens:
+        if not t.flags:
+            continue
+        sug = _clean_suggestion(t.refined)
+        ex = (t.existing or "").strip()
+        if not sug or len(sug) > 30 or sug.lower() == ex.lower() or sug.lower() in _CORR_ARTICLES:
+            continue
+        orig = re.sub(r"[·.,;:!?]+$", "", t.original)
+        key = (orig, ex.lower(), sug.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"original": orig, "existing": ex, "suggested": sug,
+                    "reason": ", ".join(f.value for f in t.flags)})
+    return out
+
+
+def generate_corrected_translation(
+    original_text: str, translation: str, corrections: list[dict]
+) -> str | None:
+    """Texto corrido sugerido: aplica SOMENTE as correções fundamentadas à
+    tradução auditada, no mesmo idioma dela. Não reescreve livremente."""
+    if not corrections:
+        return None
+    items = "\n".join(
+        f'- replace "{c["existing"]}" with "{c["suggested"]}" '
+        f'(token {c["original"]}; {c["reason"]})'
+        for c in corrections
+    )
+    prompt = f"""You are applying corrections from a philological audit to a translation.
+
+Translation under audit: {translation}
+Source text (reference only, do not translate it literally): {original_text}
+
+Apply ONLY the corrections listed below, plus the minimal grammatical agreement \
+each one forces. Keep every other word, punctuation and the overall style \
+IDENTICAL to the translation under audit. Write the result in the SAME LANGUAGE \
+as the translation under audit. Output ONLY the corrected translation text — \
+no quotation marks, no commentary.
+
+Corrections:
+{items}"""
+    resp = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return resp.content[0].text.strip()
+
+
 def generate_narrative(
     tokens: list[TokenAnalysis],
     summary: "AnalysisSummary",
@@ -436,6 +496,14 @@ def run_pipeline(
         )
     except Exception:
         summary.narrative = None
+
+    # Texto corrido sugerido (aplica só as correções sinalizadas; não bloqueia)
+    try:
+        summary.corrected_translation = generate_corrected_translation(
+            original_text, translation, flagged_corrections(token_analyses_out)
+        )
+    except Exception:
+        summary.corrected_translation = None
 
     processing_ms = int((time.time() - t0) * 1000)
 
