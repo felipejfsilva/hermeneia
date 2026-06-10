@@ -149,6 +149,114 @@ Sem essas 3 peças, código novo é prematuro. Princípio explícito do usuário
 - **v1 (mês 5-8)**: paper submetido (SCiL ou ALP @ EMNLP), abertura pública, Rongorongo/Cypro-Minoan adicionados.
 - **v2 (6-12 meses após v1)**: geração multimodal (TTS de fonemas reconstruídos, renderização paleográfica).
 
+## PLANO INTENCIONAL FASE 1 — Workbench MVP
+
+> Não é aspiração nem estimativa. É plano com escopo rígido, ordem operacional definida, marcos binariamente verificáveis, e gatilho explícito de parada ou pivô. Construído pra dizer "feito" ou "falhou" — sem zona cinza.
+
+### Tese da fase 1
+
+Provar que a metodologia funciona em **DOIS scripts genuinamente distintos** — Linear A (com âncora Linear B) e Voynich (sem âncora) — com pelo menos UMA hipótese histórica de cada um cadastrada de forma estruturada, testada cross-modal, e comparada com pelo menos UMA hipótese concorrente. Se a fase 1 provar isso reproduzivelmente, as fases 2-5 ficam atraíveis pra advisors, grants e colaboradores. Se não provar, o projeto pivota ou para.
+
+### Escopo INCLUÍDO
+
+- 2 scripts: **Linear A + Voynich**, corpora completos ingeridos
+- Camada de signos: signário catalogado + paleografia importada (SigLA pra Linear A; Currier/Davis pra Voynich)
+- Camada de inscrições: imagens alta-res + transcrições alinhadas + linha do tempo historiográfica
+- Camada de hipóteses: ~15-20 cadastradas por script (signo→valor + escopo + evidência + autor + data + status)
+- Camada de iconografia: anotação manual + correlação automática texto↔imagem (Voynich plantas, Linear A sinalética administrativa)
+- Camada de testes automáticos: cobertura, consistência interna, plausibilidade fonotática, comparação cross-hipótese, correlação iconográfica
+- Camada de geração: relatório estruturado por hipótese (PDF + Markdown), comparação side-by-side de N hipóteses
+- API REST + dumps periódicos em Zenodo com DOI
+- Autenticação obrigatória pra cadastrar; público anônimo lê
+- Beta restrito: 5-10 pesquisadores convidados (Bologna, Lund, independentes)
+
+### Escopo EXCLUÍDO (não-metas)
+
+- Geração de som (TTS de fonemas reconstruídos) → **fase 2**
+- Geração de imagens (renderização paleográfica, completação de lacunas) → **fase 2**
+- Modelos próprios fine-tuned → **fase 3**
+- Tutorial / documentação pra leigos → fase 2
+- Indus, Rongorongo, Cypro-Minoan → **fase 1.5** (rápido depois do MVP)
+- App mobile → talvez nunca
+- Monetização → **nunca**
+
+### Sequência operacional (ordem rígida)
+
+**Bloco 0 — Identidade e infraestrutura** *(em curso/pendente):*
+- ✅ Nome confirmado
+- ✅ GitHub Org + README público
+- ✅ `graphoscodex.com` registrado
+- ⏳ `graphoscodex.org` registrar
+- ⬜ Esboços visuais das 4 telas aprovados
+- ⬜ Conta Cloudflare Pages criada
+
+**Bloco 1 — Substrato de dado** *(mês 1):*
+- Schema Supabase: `script_signs`, `script_inscriptions`, `decipherment_proposals`, `hypothesis_predictions`
+- Ingestão SigLA + Linear A Digital Corpus
+- Ingestão Voynich EVA2 do Zenodo
+- Ingestão imagens (Beinecke pra Voynich; SigLA pra Linear A)
+
+**Bloco 2 — Camada de hipóteses** *(mês 2):*
+- Schema pra hipóteses estruturadas + versionamento
+- Cadastro de ~10 hipóteses Linear A (Younger, computacional 2024, anatoliana, semítica, isolado)
+- Cadastro de ~10 hipóteses Voynich (Cheshire, Pelling, Rugg, Lindemann, Tucker, Bowern, Stojanov)
+
+**Bloco 3 — Testes automáticos** *(mês 3):*
+- `compute_hypothesis_fit`: cobertura, consistência, plausibilidade
+- `generate_status_report`: relatório estruturado
+- Comparação cross-hipótese (diff visual de mapeamentos)
+
+**Bloco 4 — Iconografia + cross-modal** *(mês 4):*
+- Anotação de ~300 ilustrações botânicas do Voynich
+- Anotação de sinalética administrativa no Linear A
+- Correlação automática via CLIP texto-imagem
+
+**Bloco 5 — Frontend** *(mês 4-5):*
+- Adaptação do app Hermeneia: tabela token-token vira signo-signo
+- Corpus browser (esquerda) + Hypothesis editor/test runner (centro) + Timeline historiográfica/comparação (direita)
+- Iconography annotator (novo módulo)
+
+**Bloco 6 — Lançamento beta** *(mês 5):*
+- Convite a 5-10 pesquisadores
+- Feedback loop estruturado
+- Iteração focada
+
+### Marcos binariamente verificáveis
+
+- **M1** (fim mês 1): visitante anônimo navega corpus de Linear A + Voynich com imagens
+- **M2** (fim mês 2): pesquisador autenticado cadastra e visualiza hipótese estruturada
+- **M3** (fim mês 3): sistema gera relatório de fit pra UMA hipótese cadastrada
+- **M4** (fim mês 4): comparação side-by-side de DUAS hipóteses Linear A funciona
+- **M5** (fim mês 5): cinco pesquisadores beta cadastrados estão usando ativamente
+
+### Critérios de sucesso (binários, sem zona cinza)
+
+1. ✓ Pelo menos UM pesquisador externo (não o usuário) cadastrou hipótese, rodou teste, baixou laudo
+2. ✓ Pelo menos UMA comparação cross-hipótese gerou insight novo (predição testável que ninguém tinha articulado antes)
+3. ✓ Sistema rodando estável por 4+ semanas com >5 usuários ativos
+4. ✓ Pelo menos UM laboratório/grupo (INSCRIBE, DESCRYPT, AI-EPIGRAPHY, ou similar) demonstrou interesse formal
+
+**Se NÃO atingir os 4 em 6 meses do início → fase 1 falhou. Decisão: pivotar ou parar. Sem zona cinza.**
+
+### Princípios operacionais da fase 1
+
+- **Construir bem, não rapidamente.** Substrato podre não sustenta fases 2-5.
+- **Cada hipótese cadastrada é propaganda da metodologia.** Curadoria > volume. Recusar entrada se evidência for fraca.
+- **INSCRIBE/DESCRYPT como aliados potenciais, não concorrentes.** Citar, integrar, abrir conversa após M3.
+- **Iconografia é DIFERENCIAL.** Não pular nem simplificar mesmo sob pressão de cronograma.
+- **Provenance é INEGOCIÁVEL.** Toda hipótese tem autor, data, evidência. Toda predição tem origem. Toda validação tem método.
+- **Hermeneia continua viva e separada.** Não desmontar, não absorver. Vira primeiro caso aplicado citável do método.
+
+### Gatilho para fase 2 (decisão consciente, não automática)
+
+Após atingir os 4 critérios, decisão deliberada entre:
+- **Continuar** (fase 2 = camada generativa: TTS, renderização paleográfica, completação)
+- **Pivotar** (aprender com fase 1 e mudar direção)
+- **Pausar** (publicar paper da fase 1, aguardar grant ou colaborador)
+- **Parar** (admitir que não vale)
+
+Sem decisão consciente: fase 1 vira "mais um projeto que ficou ativo mas parou de evoluir" — risco real, evitar deliberadamente.
+
 ## Princípios herdados da Hermeneia
 
 - **Não é opinião do modelo** — todo achado ancorado em dado verificável (signo no corpus, hipótese cadastrada, predição testável).
