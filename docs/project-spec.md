@@ -1,14 +1,14 @@
-# GRAPHOS — Especificação v2
+# GRAPHOSCODEX — Especificação v3
 
-**Working title: GRAPHOS** (γράφος — "escrito"). Sujeito a revisão; existe potencial colisão de busca com Apollo GraphOS no ecossistema dev — não com público acadêmico-alvo.
+**GRAPHOSCODEX** — portmanteau de γράφος ("escrito") + *codex* (latim: manuscrito bound, também "código"). Confirmado disponível em 2026: zero conflito de marca em qualquer setor, domínios `.org` / `.com` / `.io` / `.app` livres, GitHub org `graphoscodex` livre, PyPI e npm livres.
 
 **Em uma frase.** Workbench colaborativa, multimodal e versionada para registrar, testar e comparar hipóteses de decifração de scripts antigos não decifrados, integrando texto, iconografia, paleografia, e a história das tentativas anteriores como dado estruturado.
 
 ---
 
-## Decisões consolidadas (v2)
+## Decisões consolidadas (v3)
 
-1. ✅ **Nome:** Graphos *(domínio `graphos.tools` ou `graphos.codes` — ambos livres)*
+1. ✅ **Nome:** **GraphosCodex** — domínios `graphoscodex.org` (acadêmico, primário) + `graphoscodex.com` (defensivo) ambos livres. GitHub org livre.
 2. ✅ **Primeiro script:** **Linear A**, com Voynich entrando no lançamento como segundo caso de demonstração
 3. ✅ **Iconografia no MVP**, expandindo escopo conforme abaixo
 4. ✅ **Contato com INSCRIBE: depois** do protótipo demonstrável
@@ -23,7 +23,7 @@ Decisão informada por achado em literatura recente. *Information* (MDPI, 2024) 
 
 > *"Useful for generating and evaluating hypotheses, not for producing translations. When applied to Linear A without a known related language, the proposals multiply without being reducible to a single verifiable answer."* ([mdpi.com/2078-2489/15/2/73](https://www.mdpi.com/2078-2489/15/2/73))
 
-Esse é literalmente o gap que o Graphos preenche. O campo já se articulou demandando nossa categoria de ferramenta. Linear A:
+Esse é literalmente o gap que o GraphosCodex preenche. O campo já se articulou demandando nossa categoria de ferramenta. Linear A:
 - Tem âncora (Linear B decifrado) → permite **validação parcial** das predições do framework
 - Tem comunidade acadêmica estabelecida → **legitimidade de saída**
 - Tem SigLA / Younger / INSCRIBE → **dados estruturados pra consumir**
@@ -90,13 +90,13 @@ Voynich entra no lançamento como segunda demonstração. Vantagens combinadas: 
 | Mahadevan/Wells/Ferrara | catalogação | infraestrutura pra trabalho coletivo |
 | Papers individuais | proposta isolada | testes automáticos, comparação cross-hipótese |
 
-**Posicionamento do Graphos: camada de síntese ACIMA de tudo isso.** Não compete; **complementa superiormente** — consome dados deles, devolve análise integrada.
+**Posicionamento do GraphosCodex: camada de síntese ACIMA de tudo isso.** Não compete; **complementa superiormente** — consome dados deles, devolve análise integrada.
 
 **Analogia operacional**: GitHub da decifração. Cada hipótese é "commit", cada inscrição é "arquivo", cada predição é "test case", cada revisão é "PR".
 
 **Relação com INSCRIBE (decisão registrada: contatar depois):**
-- Após MVP demonstrável, contatar **Silvia Ferrara (Bologna)** propondo Graphos como camada complementar.
-- Eventual proposta: Graphos como sub-projeto formal do INSCRIBE (capítulo "Digital Humanities"). Reduz risco de "concorrência" pra "colaboração formal".
+- Após MVP demonstrável, contatar **Silvia Ferrara (Bologna)** propondo GraphosCodex como camada complementar.
+- Eventual proposta: GraphosCodex como sub-projeto formal do INSCRIBE (capítulo "Digital Humanities"). Reduz risco de "concorrência" pra "colaboração formal".
 
 ---
 
@@ -185,7 +185,7 @@ Cada teste de hipótese chama Sonnet/Opus pra:
 | Storage imagens | Supabase Storage / Backblaze B2 | $5-20/mo |
 | LLM | Anthropic API | variável |
 | Embeddings | OpenAI / Voyage | variável |
-| Domínio | `graphos.tools` ou `.codes` | ~$15/ano |
+| Domínio | `graphoscodex.org` + `graphoscodex.com` | ~$30/ano |
 
 **Fixo mensal MVP:** $35-70 + variável de inferência.
 
@@ -218,7 +218,7 @@ Cada teste de hipótese chama Sonnet/Opus pra:
 ### 8.1 Site público
 Hero sóbrio + exemplo concreto (Linear A SigLA AB80 com 3 hipóteses lado a lado: semítica, anatoliana, isolado) + painel "scripts cobertos" + CTA bipartido ("Pesquisador: registre hipótese" / "Visitante: navegue").
 
-URL: **`graphos.tools`** (preferido) ou **`graphos.codes`**.
+URL primária: **`graphoscodex.org`** (acadêmico) + **`graphoscodex.com`** (defensivo/redirect).
 
 ### 8.2 Workbench do pesquisador (3 painéis)
 **Esquerda:** corpus browser. Lista scripts → inscrições → fólio/peça → imagem em alta resolução + transcrição alinhada + timeline historiográfica.
@@ -252,7 +252,7 @@ URL: **`graphos.tools`** (preferido) ou **`graphos.codes`**.
 
 **Total MVP: 4-5 meses focados** (vs 3-4 da v1, expandido pela iconografia)
 
-- **Mês 1:** schema + ingestão Tier 1 (Linear A + Voynich corpus) + adaptação backend Hermeneia → Graphos
+- **Mês 1:** schema + ingestão Tier 1 (Linear A + Voynich corpus) + adaptação backend Hermeneia → GraphosCodex
 - **Mês 2:** workbench básico + cadastro Tier 2 (hipóteses Linear A primeiro)
 - **Mês 3:** testes automáticos + comparison view + cadastro Tier 2 Voynich
 - **Mês 4:** anotação iconográfica (Voynich plantas + Linear A administrativa) + cross-modal CLIP integration
@@ -265,13 +265,13 @@ URL: **`graphos.tools`** (preferido) ou **`graphos.codes`**.
 
 ## 10. Riscos honestos
 
-1. **Nome "Graphos" colide com Apollo GraphOS** em busca dev. Mitigação: usar `graphos.tools` (URL distintiva), reforçar tag "decipherment" em metadata.
+1. **Nome:** zero colisão confirmada — incluindo com Apollo GraphOS (que usa "GraphOS"). "GraphosCodex" é etimologicamente distinto e ortograficamente exclusivo. Sem mitigação necessária.
 2. **Adoção lenta em humanidades.** Conferências certas (SCiL, ALP @ EMNLP, DH), contato direto com INSCRIBE no momento certo.
 3. **Curadoria histórica é trabalho duro.** Começar focado (Linear A + Voynich), expandir incrementalmente.
 4. **Iconografia anotada é gargalo.** Começar com Voynich plantas (tem trabalho prévio sólido em botânica histórica) + Linear A sinalética administrativa (menor escopo).
 5. **Você sozinho até MVP.** Arrastar pelo menos 1 advisor acadêmico cedo (após MVP, Linear A scholar via INSCRIBE).
 6. **Modelo de IA evolui.** Arquitetura modular permite troca subjacente.
-7. **Conflito de marca Graphos com Apollo.** Não é colisão direta (epigrafia vs GraphQL), mas afeta buscabilidade no Google. Aceitar e mitigar.
+7. **Conflito de marca GraphosCodex com Apollo.** Não é colisão direta (epigrafia vs GraphQL), mas afeta buscabilidade no Google. Aceitar e mitigar.
 
 ---
 
@@ -289,7 +289,7 @@ URL: **`graphos.tools`** (preferido) ou **`graphos.codes`**.
 
 ## 12. Próximo passo (após confirmação final do nome)
 
-1. **Comprar domínio** `graphos.tools` (preferido) ou `graphos.codes` — imediatamente, antes que alguém pegue.
+1. **Comprar domínios** `graphoscodex.org` + `graphoscodex.com` — imediatamente. Custo total ~US$ 30/ano. Registrar via Namecheap, Cloudflare Registrar, ou Google Domains (atual Squarespace).
 2. **Esboços de UI** das 4 telas principais (corpus browser, hypothesis editor, test runner output, comparison view) — Figma ou wireframes simples em código.
 3. **Conta GitHub Organization** `graphos-decipherment` ou similar — disponível?
 4. **Reservar handles sociais** Twitter/Mastodon/Bluesky → `@graphos`, `@graphostools`
