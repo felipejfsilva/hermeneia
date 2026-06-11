@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from ..db import get_supabase
 from ..models.schemas import Proposal, ProposalMapping, TestReport
+from ..tests_engine import compute_hypothesis_fit
 
 router = APIRouter(prefix="/proposals", tags=["proposals"])
 
@@ -49,18 +50,9 @@ def get_proposal(proposal_id: str):
 @router.post("/{proposal_id}/test", response_model=TestReport)
 def run_tests(proposal_id: str):
     """
-    STUB. Vai rodar (em fase 3 do plano intencional):
-      - cobertura
-      - consistência interna
-      - plausibilidade fonotática
-      - correlação iconográfica
-      - concordância cross-script (se houver âncora)
-    Por ora devolve placeholder pra contrato da API estar de pé.
+    Roda cobertura + consistência interna sobre o estado atual do DB.
+    Plausibilidade fonotática, correlação iconográfica e concordância cross-script
+    ficam pra fase 3.5/4 do plano intencional.
     """
-    return TestReport(
-        proposal_id=proposal_id,
-        coverage=0.0,
-        internal_consistency=0.0,
-        global_score=0.0,
-        verdict="Test pipeline não implementado (fase 3 / bloco 3).",
-    )
+    report = compute_hypothesis_fit(proposal_id)
+    return TestReport(**report)

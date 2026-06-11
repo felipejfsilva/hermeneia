@@ -1,31 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { T } from '../theme'
+import { listScripts, listInscriptions, type Script as DBScript, type Inscription } from '../data'
 
 type Script = 'linear_a' | 'voynich'
-
-const SCRIPTS: { code: Script; name: string; era: string; region: string; n: number; tagline: string; anchor: string | null }[] = [
-  { code: 'linear_a', name: 'Linear A',  era: 'c. 1800–1450 a.C.', region: 'Creta minóica',     n: 1500, tagline: 'Silabário com sentidos parciais via Linear B. Língua subjacente desconhecida.', anchor: 'Linear B' },
-  { code: 'voynich',  name: 'Voynich',   era: 'c. 1404–1438 CE',   region: 'Europa Central',    n:  240, tagline: 'Códice ilustrado em alfabeto único, 600 anos sem leitura aceita.', anchor: null },
-]
-
-const INSCRIPTIONS: Record<Script, MockInsc[]> = {
-  linear_a: [
-    { ref: 'HT 31',   title: 'Tabuinha administrativa',   material: 'argila',  date: '~1450 a.C.', icon: '◊' },
-    { ref: 'HT 38',   title: 'Lista de oferendas',         material: 'argila',  date: '~1450 a.C.', icon: '◈' },
-    { ref: 'HT 86',   title: 'Inventário de gêneros',      material: 'argila',  date: '~1450 a.C.', icon: '◇' },
-    { ref: 'ZA 10',   title: 'Tabuinha de Zakros',         material: 'argila',  date: '~1500 a.C.', icon: '◯' },
-    { ref: 'KH 5',    title: 'Khania, fragmento contábil', material: 'argila',  date: '~1450 a.C.', icon: '⬡' },
-    { ref: 'AB 80',   title: 'Disco com sinais isolados',  material: 'argila',  date: '~1600 a.C.', icon: '⌬' },
-  ],
-  voynich: [
-    { ref: 'f1r',     title: 'Capa botânica',              material: 'velino',  date: 'c. 1420',    icon: '❋' },
-    { ref: 'f33r',    title: 'Planta vermelha',            material: 'velino',  date: 'c. 1420',    icon: '✿' },
-    { ref: 'f67r',    title: 'Diagrama astronômico',       material: 'velino',  date: 'c. 1420',    icon: '☼' },
-    { ref: 'f86r',    title: 'Folhas das rosetas',         material: 'velino',  date: 'c. 1420',    icon: '✧' },
-    { ref: 'f78v',    title: 'Banho coletivo',             material: 'velino',  date: 'c. 1420',    icon: '◐' },
-    { ref: 'f116v',   title: 'Fólio final, texto puro',    material: 'velino',  date: 'c. 1420',    icon: '⁂' },
-  ],
-}
 
 const TIMELINE: Record<Script, MockEvent[]> = {
   linear_a: [
@@ -40,45 +17,68 @@ const TIMELINE: Record<Script, MockEvent[]> = {
     { year: 1944, who: 'William F. Friedman',      claim: 'Análise criptanalítica. Estatística sugere língua artificial.',      kind: 'método' },
     { year: 2003, who: 'Gordon Rugg',              claim: 'Hipótese hoax via grades de Cardan.',                                kind: 'hipótese' },
     { year: 2019, who: 'Gerard Cheshire',          claim: 'Proposta "proto-romance". Rejeitada pela comunidade.',               kind: 'hipótese' },
-    { year: 2024, who: 'Lindemann',                claim: 'Língua natural codificada. Sem consenso.',                           kind: 'hipótese' },
+    { year: 2024, who: 'Lindemann & Bowern',       claim: 'Análise bayesiana — perfil estatístico de língua natural.',          kind: 'hipótese' },
   ],
 }
 
-type MockInsc = { ref: string; title: string; material: string; date: string; icon: string }
 type MockEvent = { year: number; who: string; claim: string; kind: string }
 
+function sectionIcon(section: string | undefined): string {
+  switch (section) {
+    case 'botanical': return '✿'
+    case 'astronomical': return '☼'
+    case 'biological': return '◐'
+    case 'pharmaceutical': return '⚗'
+    case 'recipes_stars': return '✧'
+    case 'rosettes': return '✱'
+    default: return '◊'
+  }
+}
+
 export function CorpusBrowser() {
-  const [script, setScript] = useState<Script>('linear_a')
-  const [insc, setInsc] = useState<MockInsc | null>(null)
-  const cur = SCRIPTS.find(s => s.code === script)!
+  const [scripts, setScripts] = useState<DBScript[]>([])
+  const [script, setScript] = useState<Script>('voynich')
+  const [inscriptions, setInscriptions] = useState<Inscription[]>([])
+  const [insc, setInsc] = useState<Inscription | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    listScripts().then(setScripts).catch(e => setErr(String(e)))
+  }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    setInsc(null)
+    listInscriptions(script)
+      .then(rs => { setInscriptions(rs); setLoading(false) })
+      .catch(e => { setErr(String(e)); setLoading(false) })
+  }, [script])
+
+  const cur = scripts.find(s => s.code === script)
   const scriptHue = T.script[script].hue
 
   return (
-    <div style={{
-      flex: 1, overflowY: 'auto',
-      background: T.bg,
-    }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: T.bg }}>
       <div style={{ maxWidth: 1320, margin: '0 auto', padding: '32px 28px 60px' }}>
 
-        {/* HERO — script selector */}
         <section className="gc-enter" style={{ marginBottom: 36 }}>
           <div style={{
             fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em',
             color: T.inkMute, fontWeight: 600, marginBottom: 10,
           }}>
-            Scripts cobertos
+            Scripts cobertos {!loading && <span style={{ color: T.oxblood, marginLeft: 8 }}>· dados ao vivo do Supabase</span>}
           </div>
 
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16,
-          }}>
-            {SCRIPTS.map((s, i) => {
-              const active = script === s.code
-              const hue = T.script[s.code].hue
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
+            {scripts.map((s, i) => {
+              const code = s.code as Script
+              const active = script === code
+              const hue = T.script[code]?.hue ?? T.oxblood
               return (
                 <button
                   key={s.code}
-                  onClick={() => { setScript(s.code); setInsc(null) }}
+                  onClick={() => setScript(code)}
                   className="gc-enter"
                   style={{
                     textAlign: 'left',
@@ -87,7 +87,6 @@ export function CorpusBrowser() {
                     borderRadius: 12, padding: '22px 22px 20px',
                     cursor: 'pointer',
                     boxShadow: active ? T.shadowMd : 'none',
-                    transform: 'translateY(0)',
                     transition: `transform ${T.fast} ${T.ease}, box-shadow ${T.fast} ${T.ease}, border-color ${T.fast} ${T.ease}, background ${T.fast} ${T.ease}`,
                     animationDelay: `${i * 80}ms`,
                   }}
@@ -108,12 +107,9 @@ export function CorpusBrowser() {
                     <h2 className="gc-serif" style={{
                       margin: 0, fontSize: '1.8rem', fontWeight: 600,
                       letterSpacing: '-0.01em', color: T.ink,
-                    }}>
-                      {s.name}
-                    </h2>
+                    }}>{s.name}</h2>
                     <div style={{
-                      width: 14, height: 14, borderRadius: '50%',
-                      background: hue,
+                      width: 14, height: 14, borderRadius: '50%', background: hue,
                       boxShadow: active ? `0 0 0 4px ${hue}22` : 'none',
                       transition: `box-shadow ${T.fast} ${T.ease}`,
                     }} />
@@ -121,21 +117,21 @@ export function CorpusBrowser() {
                   <div className="gc-serif gc-italic" style={{
                     marginTop: 6, fontSize: '0.95rem', color: T.inkMid,
                   }}>
-                    {s.era} · {s.region}
+                    {s.period_start && s.period_end
+                      ? `${Math.abs(s.period_start)}${s.period_start < 0 ? ' a.C.' : ''} – ${Math.abs(s.period_end)}${s.period_end < 0 ? ' a.C.' : ' CE'}`
+                      : '—'} · {s.region}
                   </div>
                   <p style={{
                     marginTop: 12, marginBottom: 0, fontSize: '0.88rem',
                     color: T.inkMid, lineHeight: 1.55,
-                  }}>
-                    {s.tagline}
-                  </p>
+                  }}>{s.description || '—'}</p>
                   <div style={{
                     marginTop: 16, display: 'flex', gap: 18,
                     fontSize: '0.74rem', color: T.inkMute,
                   }}>
-                    <span><strong style={{ color: T.ink, fontWeight: 600 }}>{s.n.toLocaleString('pt-BR')}</strong> inscrições</span>
-                    {s.anchor && <span>âncora: <strong style={{ color: T.ink, fontWeight: 600 }}>{s.anchor}</strong></span>}
-                    {!s.anchor && <span style={{ color: T.oxblood, fontWeight: 600 }}>sem âncora conhecida</span>}
+                    <span><strong style={{ color: T.ink, fontWeight: 600 }}>{(s.corpus_size ?? 0).toLocaleString('pt-BR')}</strong> inscrições/tokens</span>
+                    {s.anchor_code && <span>âncora: <strong style={{ color: T.ink, fontWeight: 600 }}>{s.anchor_code}</strong></span>}
+                    {!s.anchor_code && <span style={{ color: T.oxblood, fontWeight: 600 }}>sem âncora conhecida</span>}
                   </div>
                 </button>
               )
@@ -143,12 +139,8 @@ export function CorpusBrowser() {
           </div>
         </section>
 
-        {/* SCRIPT ATIVO — gallery + timeline lado a lado */}
         <section className="gc-enter" style={{ animationDelay: '120ms' }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: 36,
-          }}>
-            {/* esquerda: gallery */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: 36 }}>
             <div>
               <div style={{
                 display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
@@ -159,26 +151,37 @@ export function CorpusBrowser() {
                     fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em',
                     color: T.inkMute, fontWeight: 600, marginBottom: 4,
                   }}>
-                    Inscrições — {cur.name}
+                    Inscrições — {cur?.name ?? '...'}
+                    <span style={{ color: scriptHue, marginLeft: 8 }}>
+                      ({inscriptions.length} no DB)
+                    </span>
                   </div>
                   <h3 className="gc-serif gc-italic" style={{
                     margin: 0, fontSize: '1.15rem', color: T.inkMid, fontWeight: 500,
                   }}>
-                    Clique pra abrir o fólio. Cada um carrega imagem, transcrição e iconografia anotada.
+                    Clique pra abrir o fólio. Transcrição real (FSG/Reeds 1994) carregada do Supabase.
                   </h3>
                 </div>
-                <a style={{
-                  fontSize: '0.78rem', color: scriptHue, fontWeight: 600,
-                  textDecoration: 'none', borderBottom: `1px solid ${scriptHue}55`,
-                  paddingBottom: 1,
-                }} href="#">ver corpus completo →</a>
               </div>
+
+              {loading && (
+                <div style={{ padding: 40, color: T.inkMute, textAlign: 'center' }}>
+                  carregando corpus...
+                </div>
+              )}
+              {err && (
+                <div style={{ padding: 20, color: T.oxblood, background: '#fee', borderRadius: 8 }}>
+                  erro: {err}
+                </div>
+              )}
 
               <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14,
               }}>
-                {INSCRIPTIONS[script].map((i, idx) => {
+                {inscriptions.map((i, idx) => {
                   const sel = insc?.ref === i.ref
+                  const sec = i.metadata?.section
+                  const icon = sectionIcon(sec)
                   return (
                     <button
                       key={i.ref}
@@ -187,10 +190,9 @@ export function CorpusBrowser() {
                       style={{
                         textAlign: 'left', padding: 0, cursor: 'pointer',
                         background: 'transparent', border: 'none',
-                        animationDelay: `${160 + idx * 50}ms`,
+                        animationDelay: `${160 + idx * 30}ms`,
                       }}
                     >
-                      {/* "imagem" — placeholder com textura de papel envelhecido */}
                       <div style={{
                         aspectRatio: '3/4', borderRadius: 8,
                         background: `linear-gradient(135deg, ${T.bgSubtle} 0%, ${T.bgPanel} 100%)`,
@@ -210,7 +212,6 @@ export function CorpusBrowser() {
                         e.currentTarget.style.transform = ''
                         e.currentTarget.style.boxShadow = T.shadowSm
                       }}>
-                        {/* textura sutil de papel: linhas finas */}
                         <div style={{
                           position: 'absolute', inset: 0,
                           backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 13px, ${T.dividerStrong}33 13px, ${T.dividerStrong}33 14px)`,
@@ -221,21 +222,27 @@ export function CorpusBrowser() {
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '3.5rem', color: `${scriptHue}66`,
                           fontFamily: T.fontSerif,
-                        }}>{i.icon}</div>
-                        {/* marca d'água do ref */}
+                        }}>{icon}</div>
                         <div style={{
                           position: 'absolute', top: 10, left: 10,
                           fontSize: '0.66rem', fontWeight: 700,
                           color: scriptHue, fontFamily: T.fontMono,
                           letterSpacing: '0.06em',
                         }}>{i.ref}</div>
+                        {i.metadata?.lines && (
+                          <div style={{
+                            position: 'absolute', bottom: 10, right: 10,
+                            fontSize: '0.62rem', color: T.inkMute,
+                            fontFamily: T.fontMono,
+                          }}>{i.metadata.lines}L</div>
+                        )}
                       </div>
                       <div style={{ marginTop: 10 }}>
                         <div className="gc-serif" style={{
-                          fontSize: '0.95rem', fontWeight: 600, color: T.ink, lineHeight: 1.3,
+                          fontSize: '0.92rem', fontWeight: 600, color: T.ink, lineHeight: 1.3,
                         }}>{i.title}</div>
                         <div style={{ marginTop: 3, fontSize: '0.72rem', color: T.inkMute }}>
-                          {i.material} · {i.date}
+                          {i.material} · {i.date_estimate}
                         </div>
                       </div>
                     </button>
@@ -243,7 +250,6 @@ export function CorpusBrowser() {
                 })}
               </div>
 
-              {/* detalhe expandido */}
               {insc && (
                 <div className="gc-enter-scale" style={{
                   marginTop: 32, padding: 28, borderRadius: 12,
@@ -256,7 +262,7 @@ export function CorpusBrowser() {
                       fontWeight: 700, letterSpacing: '0.06em',
                     }}>{insc.ref}</span>
                     <span style={{ fontSize: '0.72rem', color: T.inkMute }}>
-                      {cur.name} · {insc.material} · {insc.date}
+                      {cur?.name} · {insc.material} · {insc.date_estimate} · {insc.holding_institution}
                     </span>
                   </div>
                   <h2 className="gc-serif" style={{
@@ -264,75 +270,33 @@ export function CorpusBrowser() {
                     letterSpacing: '-0.01em', color: T.ink,
                   }}>{insc.title}</h2>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 22 }}>
-                    {/* "imagem grande" */}
+                  <div style={{ marginTop: 20 }}>
                     <div style={{
-                      aspectRatio: '4/5', borderRadius: 8,
-                      background: `linear-gradient(135deg, ${T.bgSubtle} 0%, ${T.bgPanel} 100%)`,
-                      border: `1px solid ${T.divider}`,
-                      position: 'relative', overflow: 'hidden',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 16px, ${T.dividerStrong}33 16px, ${T.dividerStrong}33 17px)`,
-                      }} />
-                      <div className="gc-serif gc-italic" style={{
-                        position: 'relative', color: T.inkMute, fontSize: '0.85rem',
-                        textAlign: 'center', maxWidth: 220, lineHeight: 1.5,
-                      }}>
-                        Imagem alta resolução de {insc.ref}<br />
-                        <span style={{ fontSize: '0.75rem', color: T.inkFaint }}>
-                          (Beinecke Library · SigLA Cambridge)
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* transcrição + iconografia */}
-                    <div>
-                      <div style={{
-                        fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.14em',
-                        color: T.inkMute, fontWeight: 600, marginBottom: 8,
-                      }}>Transcrição</div>
-                      <div className="gc-mono" style={{
-                        padding: 14, borderRadius: 8,
-                        background: T.bg, border: `1px solid ${T.divider}`,
-                        fontSize: '0.9rem', color: T.ink, lineHeight: 1.8,
-                      }}>
-                        {script === 'linear_a'
-                          ? <>𐘀𐘂𐘄 𐘅𐘇 · 𐘉𐘊𐘌𐘎 · 𐘐𐘒𐘔</>
-                          : <>otol dain kchedy daiin · qokeey shedy lkar</>
-                        }
-                        <div style={{ fontSize: '0.72rem', color: T.inkFaint, fontFamily: T.fontSans, marginTop: 8, fontStyle: 'italic' }}>
-                          padrão {script === 'voynich' ? 'EVA' : 'SigLA'} · mock
-                        </div>
-                      </div>
-
-                      <div style={{
-                        fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.14em',
-                        color: T.inkMute, fontWeight: 600, marginTop: 18, marginBottom: 8,
-                      }}>Iconografia anotada</div>
-                      <div style={{ fontSize: '0.85rem', color: T.inkMid, lineHeight: 1.55 }}>
-                        {script === 'voynich'
-                          ? <>3 elementos botânicos identificados · 0 figuras humanas.</>
-                          : <>1 sinal administrativo cognato de Linear B.</>}{' '}
-                        <a style={{ color: scriptHue, fontWeight: 600 }}>Anotar mais →</a>
-                      </div>
+                      fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.14em',
+                      color: T.inkMute, fontWeight: 600, marginBottom: 8,
+                    }}>Transcrição ({insc.transcription_format})</div>
+                    <div className="gc-mono" style={{
+                      padding: 16, borderRadius: 8,
+                      background: T.bg, border: `1px solid ${T.divider}`,
+                      fontSize: '0.85rem', color: T.ink, lineHeight: 1.7,
+                      maxHeight: 240, overflowY: 'auto',
+                      whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                    }}>{insc.transcription}</div>
+                    <div style={{ fontSize: '0.72rem', color: T.inkFaint, marginTop: 8, fontStyle: 'italic' }}>
+                      fonte: {insc.metadata?.source ?? '—'}
+                      {insc.metadata?.truncated && <span style={{ color: T.oxblood }}> · transcrição truncada na ingestão (corpus completo no Beinecke)</span>}
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* direita: timeline */}
             <aside>
               <div style={{
                 fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em',
                 color: T.inkMute, fontWeight: 600, marginBottom: 10,
               }}>Linha do tempo</div>
-              <div style={{
-                position: 'relative', paddingLeft: 22,
-              }}>
+              <div style={{ position: 'relative', paddingLeft: 22 }}>
                 <div style={{
                   position: 'absolute', left: 5, top: 8, bottom: 8,
                   width: 1, background: T.divider,

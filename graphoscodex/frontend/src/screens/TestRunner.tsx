@@ -1,63 +1,75 @@
 import { useEffect, useState } from 'react'
 import { T } from '../theme'
+import { listProposals, testProposal, type Proposal, type TestReport } from '../data'
 
-const PROPOSALS = [
-  { id: 'younger-20',   name: 'Sílabas Linear A · análise sistemática',     short: 'Younger 2020',  script: 'linear_a' as const, author: 'John G. Younger' },
-  { id: 'cheshire-19',  name: 'Voynich como proto-romance',                 short: 'Cheshire 2019', script: 'voynich' as const,  author: 'Gerard Cheshire' },
-  { id: 'lindemann-24', name: 'Voynich · língua natural codificada',        short: 'Lindemann 2024', script: 'voynich' as const,  author: 'Lindemann' },
-  { id: 'rugg-03',      name: 'Voynich · hoax via grades de Cardan',        short: 'Rugg 2003',     script: 'voynich' as const,  author: 'Gordon Rugg' },
-]
-
-const TESTS = [
-  { name: 'Cobertura',                  score: 0.62, sub: '93 de 150 sinais mapeados',                                          kind: 'ok' as const },
-  { name: 'Consistência interna',       score: 0.74, sub: 'Predições batem com 74% das ocorrências',                            kind: 'ok' as const },
-  { name: 'Plausibilidade fonotática',  score: 0.41, sub: 'Anatoliana possível; semítica improvável',                           kind: 'warn' as const },
-  { name: 'Correlação iconográfica',    score: 0.55, sub: '17 de 31 anotações correlacionam',                                   kind: 'warn' as const },
-  { name: 'Concordância com Linear B',  score: 0.81, sub: '21 de 26 valores propostos coincidem',                               kind: 'ok' as const },
-]
-
-const PREDICTIONS = [
-  { ref: 'HT 31, l.3', predicted: 'ku-ro-i-pa-i',  observed: 'ku-ro-i-pa-i', match: 1.0  },
-  { ref: 'HT 38, l.1', predicted: 'da-ku-ru-ne',   observed: 'da-?-ru-ne',   match: 0.75 },
-  { ref: 'HT 86, l.2', predicted: 'pa-i-to',       observed: 'pa-i-ta',      match: 0.5  },
-  { ref: 'ZA 10, l.1', predicted: 'i-do-mi-ne',    observed: 'i-do-mi-ne',   match: 1.0  },
-  { ref: 'KH 5,  l.1', predicted: 'ku-ka-ni',      observed: 'ku-pa-ni',     match: 0.33 },
-]
-
-const CONFLICTS = [
-  { hyp: 'Davis 2014',      on: 'AB02 = "óleo" vs "vinho"',     severity: 'high' as const },
-  { hyp: 'Salgarella 2021', on: 'AB81 fonema diverge',           severity: 'low'  as const },
-]
-
-const GLOBAL_SCORE = 0.63
-const VERDICT = 'Cobertura razoável, consistência interna alta, plausibilidade fonotática mediana. Concordância com Linear B reforça a hipótese parcial.'
+type ScriptCode = 'linear_a' | 'voynich'
 
 export function TestRunner() {
-  const [selected, setSelected] = useState(PROPOSALS[0].id)
-  const proposal = PROPOSALS.find(p => p.id === selected)!
-  const scriptHue = T.script[proposal.script].hue
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [selected, setSelected] = useState<string | null>(null)
+  const [report, setReport] = useState<TestReport | null>(null)
+  const [proposal, setProposal] = useState<Proposal | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    listProposals()
+      .then(ps => {
+        setProposals(ps)
+        if (ps.length) setSelected(ps[0].slug)
+        setLoading(false)
+      })
+      .catch(e => { setErr(String(e)); setLoading(false) })
+  }, [])
+
+  useEffect(() => {
+    if (!selected) return
+    setReport(null)
+    const p = proposals.find(x => x.slug === selected) || null
+    setProposal(p)
+    testProposal(selected).then(setReport).catch(e => setErr(String(e)))
+  }, [selected, proposals])
+
+  if (loading) {
+    return (
+      <div style={{ flex: 1, padding: 60, textAlign: 'center', color: T.inkMute }}>
+        carregando propostas...
+      </div>
+    )
+  }
+
+  if (!proposal) {
+    return (
+      <div style={{ flex: 1, padding: 60, textAlign: 'center', color: T.inkMute }}>
+        nenhuma proposta cadastrada ainda.
+      </div>
+    )
+  }
+
+  const scriptCode = proposal.script_code as ScriptCode
+  const scriptHue = T.script[scriptCode]?.hue ?? T.oxblood
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', background: T.bg }}>
       <div style={{
         maxWidth: 1240, margin: '0 auto',
         padding: '36px 28px 60px',
-        display: 'grid', gridTemplateColumns: '260px minmax(0,1fr)', gap: 36,
+        display: 'grid', gridTemplateColumns: '280px minmax(0,1fr)', gap: 36,
       }}>
-        {/* esquerda — picker */}
         <aside className="gc-enter">
           <div style={{
             fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em',
             color: T.inkMute, fontWeight: 600, marginBottom: 12,
-          }}>Proposta a testar</div>
+          }}>Proposta a testar <span style={{ color: T.oxblood }}>· {proposals.length} no DB</span></div>
 
-          {PROPOSALS.map((p, idx) => {
-            const sel = selected === p.id
-            const hue = T.script[p.script].hue
+          {proposals.map((p, idx) => {
+            const sel = selected === p.slug
+            const code = p.script_code as ScriptCode
+            const hue = T.script[code]?.hue ?? T.oxblood
             return (
               <button
-                key={p.id}
-                onClick={() => setSelected(p.id)}
+                key={p.slug}
+                onClick={() => setSelected(p.slug)}
                 className="gc-enter"
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
@@ -69,166 +81,204 @@ export function TestRunner() {
                   transition: `transform ${T.fast} ${T.ease}, border-color ${T.fast} ${T.ease}, box-shadow ${T.fast} ${T.ease}`,
                   animationDelay: `${idx * 50}ms`,
                 }}
-                onMouseEnter={e => { if (!sel) e.currentTarget.style.borderColor = T.dividerStrong }}
-                onMouseLeave={e => { if (!sel) e.currentTarget.style.borderColor = T.divider }}
               >
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
                   <div className="gc-serif" style={{
                     fontSize: '0.92rem', fontWeight: 600, color: T.ink, lineHeight: 1.25,
-                  }}>{p.short}</div>
+                  }}>{p.author.split(' ').slice(-1)[0]} {p.year_proposed}</div>
                   <div style={{
                     width: 8, height: 8, borderRadius: '50%', background: hue, flexShrink: 0,
                   }} />
                 </div>
                 <div style={{ marginTop: 4, fontSize: '0.74rem', color: T.inkMute, lineHeight: 1.4 }}>
-                  {p.author}
+                  {p.title.slice(0, 60)}{p.title.length > 60 ? '…' : ''}
                 </div>
+                <div style={{
+                  marginTop: 6, display: 'inline-block', fontSize: '0.62rem', fontWeight: 600,
+                  padding: '2px 6px', borderRadius: 4,
+                  background: p.status === 'refuted' ? T.oxbloodBg : p.status === 'active' ? T.forestBg : T.ochreBg,
+                  color: p.status === 'refuted' ? T.oxblood : p.status === 'active' ? T.forest : '#7a5a18',
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                }}>{p.status}</div>
               </button>
             )
           })}
         </aside>
 
-        {/* centro — relatório */}
-        <section className="gc-enter" key={proposal.id}>
+        <section className="gc-enter" key={proposal.slug}>
           <div style={{
             fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.14em',
             color: T.inkMute, fontWeight: 600, marginBottom: 6,
           }}>
-            Relatório · {proposal.script === 'linear_a' ? 'Linear A' : 'Voynich'} · gerado agora
+            Relatório · {scriptCode === 'linear_a' ? 'Linear A' : 'Voynich'} · computado agora
           </div>
           <h1 className="gc-serif" style={{
             margin: 0, fontSize: '2.2rem', fontWeight: 600,
             letterSpacing: '-0.015em', color: T.ink, lineHeight: 1.15,
-          }}>
-            {proposal.name}
-          </h1>
+          }}>{proposal.title}</h1>
           <div className="gc-serif gc-italic" style={{
             marginTop: 8, fontSize: '1.05rem', color: T.inkMid,
           }}>
-            {proposal.author}
+            {proposal.author} {proposal.author_affiliation && `· ${proposal.author_affiliation}`} · {proposal.year_proposed}
           </div>
 
-          {/* veredito */}
-          <div style={{
-            marginTop: 28, padding: '28px 32px', borderRadius: 12,
-            background: T.bgPanel, border: `1px solid ${T.divider}`,
-            boxShadow: T.shadowSm,
-            display: 'grid', gridTemplateColumns: '180px 1fr', gap: 28, alignItems: 'center',
-          }}>
-            <div>
-              <div style={{
-                fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.14em',
-                color: T.inkMute, fontWeight: 600, marginBottom: 8,
-              }}>Score multimodal</div>
-              <ScoreNumber value={GLOBAL_SCORE} hue={scriptHue} />
-            </div>
-            <div>
-              <div className="gc-serif" style={{
-                fontSize: '1.05rem', color: T.ink, lineHeight: 1.6,
-              }}>
-                {VERDICT}
-              </div>
-              <div style={{ marginTop: 14, display: 'flex', gap: 18, fontSize: '0.78rem', color: T.inkMute }}>
-                <span><strong style={{ color: T.ink, fontWeight: 600 }}>5</strong> testes rodados</span>
-                <span><strong style={{ color: T.ink, fontWeight: 600 }}>14</strong> predições</span>
-                <span><strong style={{ color: T.oxblood, fontWeight: 600 }}>2</strong> conflitos</span>
-              </div>
-            </div>
-          </div>
-
-          {/* testes individuais */}
-          <SectionH>Testes</SectionH>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14,
-          }}>
-            {TESTS.map((t, i) => <TestCard key={t.name} {...t} delay={i * 70} />)}
-          </div>
-
-          {/* predições */}
-          <SectionH>Predições e observação</SectionH>
-          <div style={{
-            borderRadius: 10, overflow: 'hidden',
-            background: T.bgPanel, border: `1px solid ${T.divider}`,
-            boxShadow: T.shadowSm,
-          }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${T.divider}` }}>
-                  {['Inscrição', 'Predição', 'Observado', 'Match'].map(h => (
-                    <th key={h} style={{
-                      padding: '12px 16px', textAlign: 'left',
-                      fontSize: '0.66rem', fontWeight: 700, color: T.inkMute,
-                      textTransform: 'uppercase', letterSpacing: '0.12em',
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {PREDICTIONS.map((p, i) => {
-                  const color = p.match >= 0.75 ? T.forest : p.match >= 0.5 ? T.ochre : T.oxblood
-                  return (
-                    <tr key={p.ref} className="gc-enter" style={{
-                      borderBottom: `1px solid ${T.divider}`,
-                      animationDelay: `${100 + i * 50}ms`,
-                    }}>
-                      <td className="gc-mono" style={{ padding: '12px 16px', color: scriptHue, fontSize: '0.84rem', fontWeight: 600 }}>{p.ref}</td>
-                      <td className="gc-mono" style={{ padding: '12px 16px', color: T.inkMid }}>{p.predicted}</td>
-                      <td className="gc-mono" style={{ padding: '12px 16px', color: T.inkMid }}>{p.observed}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{
-                            width: 56, height: 5, borderRadius: 999, background: T.bgSubtle,
-                            overflow: 'hidden',
-                          }}>
-                            <div className="gc-fade" style={{
-                              width: `${p.match * 100}%`, height: '100%', background: color, borderRadius: 999,
-                            }} />
-                          </div>
-                          <span className="gc-mono" style={{ fontWeight: 600, color, fontSize: '0.85rem' }}>
-                            {Math.round(p.match * 100)}%
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* conflitos */}
-          <SectionH>Conflitos com hipóteses adjacentes</SectionH>
-          {CONFLICTS.map((c, i) => (
-            <div key={c.hyp} className="gc-enter" style={{
-              padding: '14px 18px', marginBottom: 10, borderRadius: 10,
-              background: c.severity === 'high' ? T.oxbloodBg : T.ochreBg,
-              border: `1px solid ${c.severity === 'high' ? T.oxbloodBd : T.ochreBd}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              animationDelay: `${i * 60}ms`,
+          {report && (
+            <div className="gc-enter" style={{
+              marginTop: 28, padding: '28px 32px', borderRadius: 12,
+              background: T.bgPanel, border: `1px solid ${T.divider}`,
+              boxShadow: T.shadowSm,
+              display: 'grid', gridTemplateColumns: '180px 1fr', gap: 28, alignItems: 'center',
             }}>
               <div>
-                <div className="gc-serif" style={{ fontSize: '1rem', fontWeight: 600, color: T.ink }}>
-                  {c.hyp}
-                </div>
-                <div style={{ marginTop: 2, fontSize: '0.85rem', color: T.inkMid }}>
-                  {c.on}
+                <div style={{
+                  fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.14em',
+                  color: T.inkMute, fontWeight: 600, marginBottom: 8,
+                }}>Score global</div>
+                <ScoreNumber value={report.global_score} hue={scriptHue} />
+              </div>
+              <div>
+                <div className="gc-serif" style={{
+                  fontSize: '1.05rem', color: T.ink, lineHeight: 1.6,
+                }}>{report.verdict}</div>
+                <div style={{ marginTop: 14, display: 'flex', gap: 18, fontSize: '0.78rem', color: T.inkMute }}>
+                  <span><strong style={{ color: T.ink, fontWeight: 600 }}>{(proposal.mappings || []).length}</strong> mapeamentos</span>
+                  <span><strong style={{ color: T.ink, fontWeight: 600 }}>{Math.round(report.coverage * 100)}%</strong> cobertura</span>
+                  <span><strong style={{ color: report.conflicts.length ? T.oxblood : T.forest, fontWeight: 600 }}>{report.conflicts.length}</strong> conflitos</span>
                 </div>
               </div>
-              <span style={{
-                fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em',
-                color: c.severity === 'high' ? T.oxblood : '#7a5a18',
-              }}>
-                severidade {c.severity === 'high' ? 'alta' : 'baixa'}
-              </span>
             </div>
-          ))}
+          )}
 
-          {/* ações */}
-          <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
-            <button style={btnPrimary}>Baixar laudo PDF</button>
-            <button style={btnGhost}>Comparar com outras →</button>
-            <button style={btnGhost}>Re-rodar testes</button>
+          <SectionH>Resumo da hipótese</SectionH>
+          <div style={{ fontSize: '0.95rem', color: T.inkMid, lineHeight: 1.65 }}>
+            {proposal.summary}
           </div>
+
+          {report && (
+            <>
+              <SectionH>Testes individuais</SectionH>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14,
+              }}>
+                <TestCard
+                  name="Cobertura do corpus"
+                  score={report.coverage}
+                  sub={`${Math.round(report.coverage * 100)}% dos signos do corpus mapeados (ponderado por frequência de atestação)`}
+                  delay={0}
+                />
+                <TestCard
+                  name="Consistência interna"
+                  score={report.internal_consistency}
+                  sub={report.conflicts.length === 0
+                    ? 'Nenhum signo recebe valores conflitantes dentro do mesmo tipo de mapeamento'
+                    : `${report.conflicts.length} signo(s) com valores conflitantes`}
+                  delay={70}
+                />
+                <TestCard
+                  name="Plausibilidade fonotática"
+                  score={0}
+                  sub="Não implementada nesta fase (bloco 3.5 do plano intencional)"
+                  delay={140}
+                  pending
+                />
+                <TestCard
+                  name="Correlação iconográfica"
+                  score={0}
+                  sub="Não implementada nesta fase (bloco 4)"
+                  delay={210}
+                  pending
+                />
+              </div>
+            </>
+          )}
+
+          <SectionH>Mapeamentos cadastrados</SectionH>
+          {(proposal.mappings || []).length === 0 ? (
+            <div style={{ padding: 18, borderRadius: 8, background: T.ochreBg, border: `1px solid ${T.ochreBd}`, color: '#7a5a18', fontSize: '0.9rem' }}>
+              Esta hipótese é estrutural/nula — não propõe mapeamentos signo→valor explícitos.
+              Sua avaliação científica vem de outras métricas (entropia, distribuição estatística).
+            </div>
+          ) : (
+            <div style={{
+              borderRadius: 10, overflow: 'hidden',
+              background: T.bgPanel, border: `1px solid ${T.divider}`,
+              boxShadow: T.shadowSm,
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${T.divider}` }}>
+                    {['Signo', 'Tipo', 'Valor', 'Confiança', 'Evidência'].map(h => (
+                      <th key={h} style={{
+                        padding: '12px 16px', textAlign: 'left',
+                        fontSize: '0.66rem', fontWeight: 700, color: T.inkMute,
+                        textTransform: 'uppercase', letterSpacing: '0.12em',
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(proposal.mappings || []).map((m, i) => (
+                    <tr key={m.sign_id + i} className="gc-enter" style={{
+                      borderBottom: `1px solid ${T.divider}`,
+                      animationDelay: `${100 + i * 30}ms`,
+                    }}>
+                      <td className="gc-mono" style={{ padding: '12px 16px', color: scriptHue, fontSize: '1.1rem', fontWeight: 700 }}>{m.sign_id}</td>
+                      <td style={{ padding: '12px 16px', color: T.inkMid, fontSize: '0.78rem' }}>{m.mapping_type}</td>
+                      <td className="gc-mono" style={{ padding: '12px 16px', color: T.ink, fontWeight: 600 }}>{m.value}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {m.confidence != null && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 56, height: 5, borderRadius: 999, background: T.bgSubtle,
+                              overflow: 'hidden',
+                            }}>
+                              <div className="gc-fade" style={{
+                                width: `${m.confidence * 100}%`, height: '100%', background: scriptHue, borderRadius: 999,
+                              }} />
+                            </div>
+                            <span className="gc-mono" style={{ fontWeight: 600, color: T.ink, fontSize: '0.85rem' }}>
+                              {Math.round((m.confidence || 0) * 100)}%
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 16px', color: T.inkMid, fontSize: '0.78rem', maxWidth: 320 }}>{m.evidence_note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {report && report.conflicts.length > 0 && (
+            <>
+              <SectionH>Conflitos internos detectados</SectionH>
+              {report.conflicts.map((c, i) => (
+                <div key={c.sign_id + c.mapping_type} className="gc-enter" style={{
+                  padding: '14px 18px', marginBottom: 10, borderRadius: 10,
+                  background: T.oxbloodBg, border: `1px solid ${T.oxbloodBd}`,
+                  animationDelay: `${i * 60}ms`,
+                }}>
+                  <div className="gc-mono" style={{ fontSize: '0.95rem', color: T.ink }}>
+                    <strong>{c.sign_id}</strong> recebeu valores múltiplos como <strong>{c.mapping_type}</strong>: {c.values.join(', ')}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          <div style={{ marginTop: 32, padding: 16, borderRadius: 8, background: T.bgSubtle, fontSize: '0.78rem', color: T.inkMid, lineHeight: 1.6 }}>
+            <strong>nota metodológica:</strong> esta avaliação roda apenas duas métricas (cobertura ponderada por frequência e consistência interna),
+            como definido no bloco 3 do plano intencional. Plausibilidade fonotática, correlação iconográfica e concordância cross-script ficam pra fases 3.5/4.
+            Cobertura é computada sobre os signos catalogados na tabela <code>graphoscodex_signs</code>; consistência detecta valores conflitantes dentro do mesmo
+            <code>mapping_type</code> pra um mesmo signo. Hipóteses estruturais (Rugg-style) recebem score zero por não serem avaliáveis por estas métricas.
+          </div>
+
+          {err && (
+            <div style={{ marginTop: 20, padding: 14, background: '#fee', color: T.oxblood, borderRadius: 8 }}>
+              erro: {err}
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -243,7 +293,6 @@ function ScoreNumber({ value, hue }: { value: number; hue: string }) {
     const dur = 900
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / dur)
-      // easeOutCubic
       const eased = 1 - Math.pow(1 - p, 3)
       setN(value * eased)
       if (p < 1) raf = requestAnimationFrame(tick)
@@ -263,21 +312,22 @@ function ScoreNumber({ value, hue }: { value: number; hue: string }) {
   )
 }
 
-function TestCard({ name, score, sub, kind, delay }: { name: string; score: number; sub: string; kind: 'ok' | 'warn' | 'bad'; delay: number }) {
-  const color = kind === 'ok' ? T.forest : kind === 'warn' ? T.ochre : T.oxblood
-  const bg    = kind === 'ok' ? T.forestBg : kind === 'warn' ? T.ochreBg : T.oxbloodBg
-  const bd    = kind === 'ok' ? T.forestBd : kind === 'warn' ? T.ochreBd : T.oxbloodBd
+function TestCard({ name, score, sub, delay, pending }: { name: string; score: number; sub: string; delay: number; pending?: boolean }) {
+  const kind = pending ? 'pending' : score >= 0.7 ? 'ok' : score >= 0.4 ? 'warn' : 'bad'
+  const color = kind === 'pending' ? T.inkMute : kind === 'ok' ? T.forest : kind === 'warn' ? T.ochre : T.oxblood
+  const bg    = kind === 'pending' ? T.bgSubtle : kind === 'ok' ? T.forestBg : kind === 'warn' ? T.ochreBg : T.oxbloodBg
+  const bd    = kind === 'pending' ? T.divider : kind === 'ok' ? T.forestBd : kind === 'warn' ? T.ochreBd : T.oxbloodBd
   return (
     <div className="gc-enter" style={{
       padding: 18, borderRadius: 10, background: bg, border: `1px solid ${bd}`,
-      animationDelay: `${delay}ms`,
+      animationDelay: `${delay}ms`, opacity: pending ? 0.6 : 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <div className="gc-serif" style={{ fontSize: '1rem', fontWeight: 600, color: T.ink, letterSpacing: '-0.005em' }}>{name}</div>
-        <div className="gc-serif" style={{ fontSize: '1.4rem', fontWeight: 600, color }}>{Math.round(score * 100)}%</div>
+        <div className="gc-serif" style={{ fontSize: '1.4rem', fontWeight: 600, color }}>{pending ? '—' : Math.round(score * 100) + '%'}</div>
       </div>
       <div style={{ marginTop: 10, height: 4, background: 'rgba(28,26,22,0.06)', borderRadius: 999, overflow: 'hidden' }}>
-        <div className="gc-fade" style={{ height: '100%', width: `${score * 100}%`, background: color, borderRadius: 999 }} />
+        <div className="gc-fade" style={{ height: '100%', width: `${pending ? 0 : score * 100}%`, background: color, borderRadius: 999 }} />
       </div>
       <div style={{ marginTop: 10, fontSize: '0.78rem', color: T.inkMid, lineHeight: 1.5 }}>{sub}</div>
     </div>
@@ -293,16 +343,4 @@ function SectionH({ children }: { children: React.ReactNode }) {
       borderBottom: `1px solid ${T.divider}`, paddingBottom: 8,
     }}>{children}</h2>
   )
-}
-
-const btnPrimary: React.CSSProperties = {
-  padding: '11px 24px', borderRadius: 999,
-  background: T.ink, border: `1px solid ${T.ink}`,
-  color: T.bg, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-  transition: `transform ${T.fast} ${T.ease}`,
-}
-const btnGhost: React.CSSProperties = {
-  padding: '11px 22px', borderRadius: 999,
-  background: 'transparent', border: `1px solid ${T.dividerStrong}`,
-  color: T.ink, fontSize: '0.83rem', fontWeight: 600, cursor: 'pointer',
 }
