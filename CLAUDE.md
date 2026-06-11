@@ -97,8 +97,7 @@ O lema do alinhamento (Claude) e o headword do léxico divergem em vocalização
 
 - ✅ **Nome confirmado:** GraphosCodex (γράφος + codex). Zero conflito de marca em qualquer setor.
 - ✅ **GitHub Organization**: [github.com/graphoscodex](https://github.com/graphoscodex) com `.github/profile/README.md` público.
-- ✅ **Domínio defensivo**: `graphoscodex.com` registrado no Cloudflare (auto-renew, WHOIS privacy, até jun/2027).
-- ⏳ **Domínio primário acadêmico**: `graphoscodex.org` pendente.
+- ✅ **Domínio**: `graphoscodex.com` registrado no Cloudflare (felipejfsilva@gmail.com, auto-renew ON, WHOIS privacy, até jun/2027, $10.46/ano). **Decisão de Felipe (jun/2026): `.com` é suficiente; `.org` NÃO será registrado.** Não voltar a sugerir o `.org`.
 - ⬜ **Esboços visuais das 4 telas** (corpus browser, hypothesis editor, test runner, comparison view) — próximo passo lógico, sem urgência.
 - ⬜ **Código**: zero linha escrita. Não começa antes dos esboços aprovados.
 
@@ -136,12 +135,14 @@ O lema do alinhamento (Claude) e o headword do léxico divergem em vocalização
 
 ## Próximo passo (quando o usuário voltar à frente GraphosCodex)
 
-Antes de qualquer linha de código:
-1. Registrar `graphoscodex.org` (peça primária faltando).
-2. Esboços visuais das 4 telas principais (Figma ou wireframes em código).
-3. Pausa estratégica pra usuário reler `docs/project-spec.md` com calma e marcar refinos.
+Decisões registradas que NÃO precisam mais voltar:
+- Domínio: `.com` é suficiente (decisão jun/2026); `.org` descartado, não sugerir.
 
-Sem essas 3 peças, código novo é prematuro. Princípio explícito do usuário: *"não podemos começar na subjeção e obscuridade."*
+Pendente antes (ou em paralelo com) novo código:
+1. Esboços visuais das 4 telas — já existem como wireframe React em `graphoscodex/frontend/` (jun/2026); refinar quando Felipe quiser.
+2. Releitura calma de `docs/project-spec.md` pra marcar refinos.
+
+Princípio explícito do usuário: *"não podemos começar na subjeção e obscuridade."* Os esboços (frontend wireframes) já existem; código continua sob o critério de marcos verificáveis.
 
 ## Cronograma indicativo (depois de iniciado)
 
@@ -185,8 +186,7 @@ Provar que a metodologia funciona em **DOIS scripts genuinamente distintos** —
 **Bloco 0 — Identidade e infraestrutura** *(em curso/pendente):*
 - ✅ Nome confirmado
 - ✅ GitHub Org + README público
-- ✅ `graphoscodex.com` registrado
-- ⏳ `graphoscodex.org` registrar
+- ✅ `graphoscodex.com` registrado (Felipe decidiu: `.com` único, sem `.org`)
 - ⬜ Esboços visuais das 4 telas aprovados
 - ⬜ Conta Cloudflare Pages criada
 

@@ -8,7 +8,7 @@
 
 ## Decisões consolidadas (v3)
 
-1. ✅ **Nome:** **GraphosCodex** — domínios `graphoscodex.org` (acadêmico, primário) + `graphoscodex.com` (defensivo) ambos livres. GitHub org livre.
+1. ✅ **Nome:** **GraphosCodex** — domínio `graphoscodex.com` registrado no Cloudflare (jun/2026). Decisão de Felipe: `.com` é suficiente; `.org` NÃO será registrado. GitHub org `graphoscodex` ativa.
 2. ✅ **Primeiro script:** **Linear A**, com Voynich entrando no lançamento como segundo caso de demonstração
 3. ✅ **Iconografia no MVP**, expandindo escopo conforme abaixo
 4. ✅ **Contato com INSCRIBE: depois** do protótipo demonstrável
@@ -185,7 +185,7 @@ Cada teste de hipótese chama Sonnet/Opus pra:
 | Storage imagens | Supabase Storage / Backblaze B2 | $5-20/mo |
 | LLM | Anthropic API | variável |
 | Embeddings | OpenAI / Voyage | variável |
-| Domínio | `graphoscodex.org` + `graphoscodex.com` | ~$30/ano |
+| Domínio | `graphoscodex.com` (Cloudflare, registrado) | ~$10/ano |
 
 **Fixo mensal MVP:** $35-70 + variável de inferência.
 
@@ -218,7 +218,7 @@ Cada teste de hipótese chama Sonnet/Opus pra:
 ### 8.1 Site público
 Hero sóbrio + exemplo concreto (Linear A SigLA AB80 com 3 hipóteses lado a lado: semítica, anatoliana, isolado) + painel "scripts cobertos" + CTA bipartido ("Pesquisador: registre hipótese" / "Visitante: navegue").
 
-URL primária: **`graphoscodex.org`** (acadêmico) + **`graphoscodex.com`** (defensivo/redirect).
+URL pública: **`graphoscodex.com`** (decisão de Felipe: `.com` único, sem `.org`).
 
 ### 8.2 Workbench do pesquisador (3 painéis)
 **Esquerda:** corpus browser. Lista scripts → inscrições → fólio/peça → imagem em alta resolução + transcrição alinhada + timeline historiográfica.
@@ -289,7 +289,7 @@ URL primária: **`graphoscodex.org`** (acadêmico) + **`graphoscodex.com`** (def
 
 ## 12. Próximo passo (após confirmação final do nome)
 
-1. **Comprar domínios** `graphoscodex.org` + `graphoscodex.com` — imediatamente. Custo total ~US$ 30/ano. Registrar via Namecheap, Cloudflare Registrar, ou Google Domains (atual Squarespace).
+1. ✅ ~~Comprar domínios~~ — feito (`graphoscodex.com` registrado em jun/2026 na Cloudflare; `.org` descartado por decisão de Felipe).
 2. **Esboços de UI** das 4 telas principais (corpus browser, hypothesis editor, test runner output, comparison view) — Figma ou wireframes simples em código.
 3. **Conta GitHub Organization** `graphos-decipherment` ou similar — disponível?
 4. **Reservar handles sociais** Twitter/Mastodon/Bluesky → `@graphos`, `@graphostools`

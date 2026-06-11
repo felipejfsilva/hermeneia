@@ -81,8 +81,7 @@ Não é tentativa de decifrar — é o **instrumento** que torna a tentativa sis
 - ✅ Nome confirmado (GraphosCodex, zero conflito de marca)
 - ✅ GitHub Organization criada em `github.com/graphoscodex`
 - ✅ README público de apresentação
-- ✅ `graphoscodex.com` registrado no Cloudflare
-- ⏳ `graphoscodex.org` pendente
+- ✅ `graphoscodex.com` registrado no Cloudflare (decisão de Felipe: `.com` único, sem `.org`)
 - ⬜ Esboços visuais das telas principais
 - ⬜ Código (não começou — começa após esboços aprovados)
 
