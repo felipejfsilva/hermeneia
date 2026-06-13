@@ -50,6 +50,25 @@ CURATED_LEMMAS = {
         "γνῶσις", "μυστήριον", "παρουσία", "κρίσις", "ἔλεος", "χαρά",
         "δοῦλος", "ἐντολή",
     ],
+    "latin": [
+        # Filosofia, ética, teologia
+        "deus", "anima", "spiritus", "ratio", "mens", "virtus", "veritas",
+        "sapientia", "iustitia", "pietas", "fides", "gratia", "caritas",
+        "amor", "spes", "libertas", "bonus", "malum", "natura", "lex",
+        "ius", "officium", "honor", "gloria",
+        # Vida, morte, pessoa
+        "vita", "mors", "homo", "vir", "mulier", "puer", "anima", "corpus",
+        "caro", "sanguis", "cor", "manus", "oculus",
+        # Estado, sociedade, guerra
+        "civitas", "patria", "respublica", "populus", "rex", "imperium",
+        "bellum", "pax", "miles", "hostis", "amicus", "servus", "dominus",
+        # Tempo, espaço, ação
+        "tempus", "annus", "dies", "nox", "mundus", "terra", "caelum",
+        "aqua", "ignis", "domus", "via",
+        # Verbos centrais
+        "amo", "credo", "scio", "video", "audio", "dico", "facio", "ago",
+        "sum", "possum", "volo", "do", "habeo", "vivo", "morior",
+    ],
 }
 
 LANG_NAMES = {

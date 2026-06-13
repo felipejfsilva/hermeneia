@@ -72,8 +72,8 @@ O lema do alinhamento (Claude) e o headword do léxico divergem em vocalização
 
 ## Pendente Hermeneia
 - Deploy real (API no Railway/Render + frontend no Vercel) — depende do usuário.
-- Consenso para latim (sem traduções de referência seeded ainda).
-- Bizantino como 3º testemunho grego (`byztxt` resistiu; achar fonte alternativa).
+- ✅ Consenso para latim (jun/2026) — 8 fontes (LCL, Penguin, BohnYonge, Fagles, Ruden, OLD, LewisShort, Cassell) seedadas em `hermeneia_reference_translations`. 75 lemas curados (filosofia/teologia/sociedade/tempo/verbos) geraram 118 linhas em `hermeneia_token_consensus` via `scripts/lexicons/seed_latin_consensus.py`. Divergências genuínas ficam visíveis: virtus → virtue 0.36 / manliness 0.26 / courage 0.25 / valor 0.13. Original_token normalizado (`latin_bare` v→u: virtus → uirtus); mesma chave que `lookup_lexicon` usa no runtime.
+- ✅ Bizantino como 3º testemunho grego (jun/2026) — Robinson-Pierpont 2018 vindo de `byztxt/byzantine-majority-text` (csv-unicode/strongs/no-parsing). `scripts/sources/ingest_byztxt.py` insere 7953 versículos sob `witness='ByzMT'`. Confere com TR no John 1:1 (ambos tradição majoritária) e diverge de SBLGNT (texto crítico, com acentuação e pontuação). `/source-text?ref=&language=koine_greek` agora retorna os três testemunhos lado a lado.
 
 ## Dívidas de honestidade
 - Consenso é `llm_derived` (memória do modelo, não corpus alinhado real). v2: substituir por corpus e marcar `verified`.
